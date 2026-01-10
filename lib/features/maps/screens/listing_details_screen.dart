@@ -1,0 +1,266 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart' show GoogleFonts;
+import 'package:image_picker/image_picker.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import '../../../shared/services/user_firestore_service.dart';
+import 'package:provider/provider.dart';
+import '../../../shared/services/storage_service.dart';
+
+
+class ListingDetailsScreen extends StatefulWidget {
+  final List<mapbox.Point> boundaryPoints;
+  final double areaInSqMeters;
+
+  const ListingDetailsScreen({
+    super.key,
+    required this.boundaryPoints,
+    required this.areaInSqMeters,
+  });
+
+  @override
+  State<ListingDetailsScreen> createState() => _ListingDetailsScreenState();
+}
+
+class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  String? _soilType = 'Alluvial';
+  String? _waterSource = 'Tube Well';
+  bool _roadAccess = true;
+
+  final List<XFile> _pickedImages = [];
+  final ImagePicker _picker = ImagePicker();
+
+  static const Color _primaryBlue = Color(0xFF0D47A1);
+  static const Color _accentGreen = Color(0xFF2E7D32);
+
+  final List<String> _soilTypes = ['Alluvial', 'Black', 'Red', 'Laterite', 'Sandy', 'Clay'];
+  final List<String> _waterSources = ['Tube Well', 'Canal', 'River', 'Rainfed', 'Borewell'];
+    
+
+
+    Future<void> _pickImages() async {
+  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
+  if (image != null) {
+    setState(() {
+      _pickedImages.add(image);
+      if (_pickedImages.length > 10) {
+        _pickedImages.length = 10;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Maximum 10 photos allowed')),
+        );
+      }
+    });
+  }
+}
+
+
+  void _removeImage(int index) {
+    setState(() {
+      _pickedImages.removeAt(index);
+    });
+  }
+
+ void _submitListing() async {
+  if (_formKey.currentState!.validate() && _pickedImages.isNotEmpty) {
+    try {
+      // 1️⃣ Get StorageService
+      final storageService = context.read<StorageService>();
+
+      // 2️⃣ Convert XFile → File
+      final files = _pickedImages.map((e) => File(e.path)).toList();
+
+      // 3️⃣ Upload images to Firebase Storage
+      final imageUrls = await storageService.uploadListingImages(files);
+
+      // 4️⃣ Save listing to Firestore with IMAGE URLs
+      final firestoreService = UserFirestoreService();
+
+      await firestoreService.saveLandListing(
+        title: _titleController.text,
+        price: double.parse(_priceController.text.replaceAll(',', '')),
+        description: _descriptionController.text,
+        areaInSqMeters: widget.areaInSqMeters,
+        boundaryPoints: widget.boundaryPoints,
+        photoPaths: imageUrls, // ✅ URLs, NOT local paths
+        soilType: _soilType!,
+        waterSource: _waterSource!,
+        roadAccess: _roadAccess,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Listing saved successfully'),
+          backgroundColor: _accentGreen,
+        ),
+      );
+
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving listing: $e')),
+      );
+    }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please complete all fields and add photos')),
+    );
+  }
+}
+
+
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _priceController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Complete Listing', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+        backgroundColor: _primaryBlue,
+        foregroundColor: Colors.white,
+      ),
+      body: Container(
+        color: const Color(0xFFF5F7FA),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Icon(Icons.square_foot, size: 40, color: _primaryBlue),
+                      const SizedBox(height: 12),
+                      Text('Land Area', style: GoogleFonts.poppins(fontSize: 18, color: Colors.grey[700])),
+                      Text(
+                        '${widget.areaInSqMeters.toStringAsFixed(2)} sq m',
+                        style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold, color: _primaryBlue),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              TextFormField(
+                controller: _titleController,
+                decoration: InputDecoration(labelText: 'Land Title *', prefixIcon: const Icon(Icons.title), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                validator: (v) => v?.isEmpty == true ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _priceController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: 'Price in ₹ *', prefixIcon: const Icon(Icons.currency_rupee), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                validator: (v) => v?.isEmpty == true ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 5,
+                decoration: InputDecoration(labelText: 'Description', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              ),
+              const SizedBox(height: 24),
+
+              // Photo Picker
+              Text('Add Photos * (max 10)', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _pickImages,
+                icon: const Icon(Icons.add_photo_alternate),
+                label: Text('Pick Photos from Gallery', style: GoogleFonts.poppins()),
+                style: ElevatedButton.styleFrom(backgroundColor: _primaryBlue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
+              ),
+              const SizedBox(height: 16),
+
+              // Photo Grid Preview
+              if (_pickedImages.isNotEmpty)
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8),
+                  itemCount: _pickedImages.length,
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(File(_pickedImages[index].path), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: IconButton(
+                            icon: const Icon(Icons.remove_circle, color: Colors.red),
+                            onPressed: () => _removeImage(index),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
+
+              // Other fields (soil, water, road)
+              DropdownButtonFormField<String>(
+                initialValue: _soilType,
+                decoration: InputDecoration(labelText: 'Soil Type', prefixIcon: const Icon(Icons.texture), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                items: _soilTypes.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (v) => setState(() => _soilType = v),
+              ),
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                initialValue: _waterSource,
+                decoration: InputDecoration(labelText: 'Water Source', prefixIcon: const Icon(Icons.water_drop), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                items: _waterSources.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (v) => setState(() => _waterSource = v),
+              ),
+              const SizedBox(height: 16),
+
+              SwitchListTile(
+                title: Text('Road Access', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+                value: _roadAccess,
+               activeColor: _accentGreen,
+                thumbColor: WidgetStateProperty.all(Colors.white),
+                trackColor: WidgetStateProperty.all(_accentGreen.withOpacity(0.5)),
+                onChanged: (v) => setState(() => _roadAccess = v),
+              ),
+              const SizedBox(height: 32),
+
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _submitListing,
+                  style: ElevatedButton.styleFrom(backgroundColor: _accentGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  child: Text('Submit Listing', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
