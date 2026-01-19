@@ -29,13 +29,14 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _villageController = TextEditingController();
 
   String? _soilType = 'Alluvial';
   String? _waterSource = 'Tube Well';
   bool _roadAccess = true;
 
-  final List<XFile> _pickedImages = [];
-  final ImagePicker _picker = ImagePicker();
+   final List<XFile> _pickedImages = [];
+   final ImagePicker _picker = ImagePicker();
 
   static const Color _primaryBlue = Color(0xFF0D47A1);
   static const Color _accentGreen = Color(0xFF2E7D32);
@@ -69,19 +70,20 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   }
 
  void _submitListing() async {
-  if (_formKey.currentState!.validate() && _pickedImages.isNotEmpty) {
+   if (_formKey.currentState!.validate() && _pickedImages.isNotEmpty) {
     try {
-      // 1️⃣ Get StorageService
+      //1️⃣ Get StorageService
       final storageService = context.read<StorageService>();
 
-      // 2️⃣ Convert XFile → File
+    //  2️⃣ Convert XFile → File
       final files = _pickedImages.map((e) => File(e.path)).toList();
 
       // 3️⃣ Upload images to Firebase Storage
       final imageUrls = await storageService.uploadListingImages(files);
 
       // 4️⃣ Save listing to Firestore with IMAGE URLs
-      final firestoreService = UserFirestoreService();
+      if(!mounted) return;
+      final firestoreService = context.read<UserFirestoreService>();
 
       await firestoreService.saveLandListing(
         title: _titleController.text,
@@ -89,12 +91,13 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         description: _descriptionController.text,
         areaInSqMeters: widget.areaInSqMeters,
         boundaryPoints: widget.boundaryPoints,
-        photoPaths: imageUrls, // ✅ URLs, NOT local paths
+         photoPaths: imageUrls, // ✅ URLs, NOT local paths
+         village: _villageController.text,
         soilType: _soilType!,
         waterSource: _waterSource!,
         roadAccess: _roadAccess,
       );
-
+    if(!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Listing saved successfully'),
@@ -122,6 +125,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
     _titleController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
+    _villageController.dispose();
     super.dispose();
   }
 
@@ -174,6 +178,17 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                 validator: (v) => v?.isEmpty == true ? 'Required' : null,
               ),
               const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _villageController,  // Add a new TextEditingController _villageController = TextEditingController();
+                decoration: InputDecoration(
+                labelText: 'Village Name',
+                prefixIcon: Icon(Icons.location_city),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+               validator: (v) => v?.isEmpty == true ? 'Required' : null,
+            ),
+               const SizedBox(height: 16),
 
               TextFormField(
                 controller: _descriptionController,

@@ -1,11 +1,14 @@
+import 'package:agrozemex/features/welcome/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../features/auth/services/auth_service.dart';
 import '../features/auth/screens/login_screen.dart';
-import '../features/home/screens/home_screen.dart';
 import '../shared/services/user_firestore_service.dart';
 import '../../shared/services/storage_service.dart';
-
+import '../features/home/services/listing_query_service.dart';
+import 'init.dart';
+import '../shared/services/location_service.dart';
+import '../features/home/services/listing_search_service.dart';
 
 
 class AppRoot extends StatelessWidget {
@@ -22,7 +25,23 @@ class AppRoot extends StatelessWidget {
       create: (_) => UserFirestoreService(),
     ),
 
-    Provider(create: (_) => StorageService()),
+   Provider(
+  create: (_) => ListingQueryService(),
+),
+          
+          Provider(
+  create: (_) => ListingSearchService(),
+),
+
+
+    Provider
+    (create: (_) => StorageService()),
+
+    
+        // ✅ SINGLE SOURCE OF LOCATION
+        Provider<LocationService>(
+          create: (_) => AppInit.locationService,
+        ),
 
   ],
   child: MaterialApp(
@@ -50,6 +69,6 @@ class RootDecider extends StatelessWidget {
 
     return auth.user == null
         ? const LoginScreen()
-       : const HomeScreen();
+       : const WelcomeScreen();
   }
 }

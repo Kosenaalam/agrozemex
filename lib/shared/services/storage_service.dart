@@ -1,9 +1,6 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:io';
-import 'package:provider/provider.dart';
-import '../../shared/services/storage_service.dart';
 
 
 class StorageService {
