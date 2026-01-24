@@ -1,5 +1,8 @@
 // F:\agrozemex\lib\features\home\screens\home_screen.dart
 // (No changes needed here—your provided version with debounce, deduping, and resets is already correct)
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
+import 'package:agrozemex/features/auth/services/auth_service.dart';
+import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -62,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final service = context.read<ListingQueryService>();
     final newListings =
         await service.fetchNextPage(searchQuery: _searchQuery);
+        print('Fetched ${newListings.length} new listings');
 
     if (!mounted) return;
 
@@ -153,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             style: GoogleFonts.poppins(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Search village / tehsil / highway',
+              hintText: 'Search village / tehsil ',
               hintStyle: GoogleFonts.poppins(color: Colors.white70),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -171,6 +175,11 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)), // Curved bottom for AppBar
         ),
         elevation: 4, // Slight elevation for depth
+         //--------------------------
+         
+
+
+        //---------------------------
       ),
       body: _listings.isEmpty && !_isLoading
           ? const Center(child: Text('No listings found'))
@@ -202,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add_location_alt, color: Colors.white, size: 30),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+       bottomNavigationBar: const CustomBottomNav(),
     );
   }
 
@@ -210,21 +220,35 @@ class _HomeScreenState extends State<HomeScreen> {
         item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
 
     return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ListingDetailScreen(
-              title: item.title,
-              price: item.price,
-              description: item.description,
-              areaInSqMeters: item.areaInSqMeters,
-              boundaryPoints: item.boundaryPoints,
-              photoPaths: item.photoPaths,
-            ),
-          ),
-        );
-      },
+    onTap: () {
+  final auth = context.read<AuthService>(); // Safe read using outer context (no Builder needed)
+
+  if (auth.user != null) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ListingDetailScreen(
+          listingId: item.id,
+          title: item.title,
+          price: item.price,
+          description: item.description,
+          areaInSqMeters: item.areaInSqMeters,
+          boundaryPoints: item.boundaryPoints,
+          photoPaths: item.photoPaths,
+        ),
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please login first!")),
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
+  }
+},
+      
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

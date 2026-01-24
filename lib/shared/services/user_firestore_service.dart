@@ -67,63 +67,56 @@ class UserFirestoreService {
       await ref.set({
         'uid': user.uid,
         'phone': user.phoneNumber,
-        'createdAt': DateTime.now(),
+        'createdAt': Timestamp.now(), // IMPROVED: Use Timestamp for sorting
+        'role': 'buyer', // NEW: Default role
       });
     }
   }
 
-  // Builds normalized search tokens at WRITE-TIME
-/// These tokens are stored in Firestore and used for SAFE server-side search
-/// (arrayContains supports only ONE keyword, so we pre-tokenize)
-List<String> _buildSearchTokens({
-  required String title,
-  required String description,
-  required String soilType,
-  required String waterSource,
-  required bool roadAccess,
-  required String village,
-}) {
-  // Combine all searchable fields into one string
-  final String combinedText = '''
-$title
-$description
-$soilType
-$waterSource
-$village
-${roadAccess ? 'road access highway' : ''}
-''';
-
-  // Normalize text: lowercase + remove symbols
-  final String normalized = normalize(combinedText);
-
-  // Split into tokens, remove short words, remove duplicates
-  final List<String> tokens = normalized
-      .split(' ')
-      .where((word) => word.length > 2)
-      .toSet()
-      .toList();
-
-  // Generate expanded tokens with synonyms and n-grams
-  final expandedTokens = <String>{};
-  for (final token in tokens) {
-    expandedTokens.add(token); // Original
-    expandedTokens.addAll(expandWithSynonyms(token)); // Synonyms
-    expandedTokens.addAll(generateNGrams(token)); // N-grams for partial matches
+  Future<Map<String, dynamic>> getUserData(String uid) async { // NEW: To fetch user info for profile
+    final doc = await _db.collection('users').doc(uid).get();
+    return doc.data() ?? {};
   }
 
-  return expandedTokens.toList();
-}
+  // IMPROVED: Made _buildSearchTokens more efficient by avoiding unnecessary string concatenation if empty
+  List<String> _buildSearchTokens({
+    required String title,
+    required String description,
+    required String soilType,
+    required String waterSource,
+    required bool roadAccess,
+    required String village,
+  }) {
+    final List<String> fields = [title, description, soilType, waterSource, village];
+    if (roadAccess) fields.add('road access highway');
 
+    final combinedText = fields.where((f) => f.isNotEmpty).join(' '); // IMPROVED: Filter empty
 
+    final String normalized = normalize(combinedText);
 
-  // ---------------- NEW: SAVE LAND LISTING ----------------
+    final List<String> tokens = normalized
+        .split(' ')
+        .where((word) => word.length > 2)
+        .toSet()
+        .toList();
+
+    final expandedTokens = <String>{};
+    for (final token in tokens) {
+      expandedTokens.add(token);
+      expandedTokens.addAll(expandWithSynonyms(token));
+      expandedTokens.addAll(generateNGrams(token));
+    }
+
+    return expandedTokens.toList();
+  }
+
   Future<void> saveLandListing({
     required String title,
     required double price,
     required String description,
     required double areaInSqMeters,
     required List<mapbox.Point> boundaryPoints,
-     required List<String> photoPaths,
+    required List<String> photoPaths,
     required String soilType,
     required String waterSource,
     required bool roadAccess,
@@ -133,17 +126,15 @@ ${roadAccess ? 'road access highway' : ''}
     if (user == null) throw Exception('User not logged in');
 
     final searchTokens = _buildSearchTokens(
-  title: title,
-  description: description,
-  soilType: soilType,
-  waterSource: waterSource,
-  roadAccess: roadAccess,
-  village: village,
+      title: title,
+      description: description,
+      soilType: soilType,
+      waterSource: waterSource,
+      roadAccess: roadAccess,
+      village: village,
+    );
 
-);
-
-
-
+    // IMPROVED: Added 'is_active' default true for status
     await _db.collection('listings').add({
       'title': title,
       'price': price,
@@ -156,15 +147,17 @@ ${roadAccess ? 'road access highway' : ''}
       'created_by': user.uid,
       'created_at': FieldValue.serverTimestamp(),
       'boundary_points': boundaryPoints
-          .map((p) => {
-                'lat': p.coordinates.lat,
-                'lng': p.coordinates.lng,
-              })
+          .map((p) => {'lat': p.coordinates.lat, 'lng': p.coordinates.lng})
           .toList(),
-           'search_tokens': searchTokens,
+      'search_tokens': searchTokens,
+      'is_active': true, // NEW: For status management
     });
-  }   
-
-            
-
+    // NEW: Update role to 'seller' if current is 'buyer'
+    final userDoc = _db.collection('users').doc(user.uid);
+    final userSnap = await userDoc.get();
+    if (userSnap.exists && userSnap.data()!['role'] == 'buyer') {
+      await userDoc.update({'role': 'seller'});
+    }
+  }
 }
+

@@ -280,14 +280,22 @@ class _MapScreenState extends State<MapScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                 SingleChildScrollView(
+                scrollDirection: Axis.horizontal, 
+              child:  Row(
+                 // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _actionButton('Undo', Icons.undo, _undo, enabled: !_isSaved),
+                    
+                     _actionButton('Undo', Icons.undo, _undo, enabled: !_isSaved),
+                    
                     _actionButton('Clear', Icons.delete_outline, _clear, enabled: !_isSaved, destructive: true),
+                                        
                     _actionButton('Save', Icons.save, _save, enabled: !_isSaved, primary: true),
+              
                   ],
+
                 ),
+             )
               ],
             ),
           ),

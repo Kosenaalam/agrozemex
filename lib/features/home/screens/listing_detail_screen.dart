@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'dart:math' as math;
-
+import 'package:agrozemex/shared/services/wishlist_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 class ListingDetailScreen extends StatefulWidget {
+  final String listingId;
   final String title;
   final double price;
   final String description;
@@ -16,6 +17,7 @@ class ListingDetailScreen extends StatefulWidget {
 
   const ListingDetailScreen({
     super.key,
+    required this.listingId,
     required this.title,
     required this.price,
     required this.description,
@@ -33,6 +35,11 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   mapbox.PointAnnotationManager? _pointManager;
   mapbox.PolygonAnnotationManager? _polygonManager;
   mapbox.PolylineAnnotationManager? _outlineManager;
+
+  final WishlistService _wishlistService = WishlistService();
+  
+
+
 
   Uint8List? _blueCircleIcon;
 
@@ -176,10 +183,27 @@ Future<void> _drawBoundary() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Land Details'),
-        backgroundColor: const Color(0xFF0D47A1),
-      ),
+     appBar: AppBar(
+  title: const Text('Land Details'),
+  backgroundColor: const Color(0xFF0D47A1),
+  actions: [
+    StreamBuilder<bool>(
+      stream: _wishlistService.isWishlisted(widget.listingId), // TEMP id if needed
+      builder: (context, snapshot) {
+        final isFav = snapshot.data ?? false;
+        return IconButton(
+          icon: Icon(
+            isFav ? Icons.favorite : Icons.favorite_border,
+            color: isFav ? Colors.red : Colors.white,
+          ),
+          onPressed: () =>
+              _wishlistService.toggleWishlist(widget.listingId),
+        );
+      },
+    ),
+  ],
+),
+
       body: SingleChildScrollView(
         child: Column(
           children: [
