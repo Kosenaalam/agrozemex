@@ -13,7 +13,7 @@ class ListingDetailScreen extends StatefulWidget {
   final String description;
   final double areaInSqMeters;
   final List<mapbox.Point> boundaryPoints;
-  final List<String> photoPaths; // CAN BE URL OR LOCAL PATH
+  final List<String> photoPaths; 
 
   const ListingDetailScreen({
     super.key,
@@ -56,16 +56,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   void _onMapCreated(mapbox.MapboxMap controller) async {
     _mapController = controller;
-    _pointManager = await controller.annotations!.createPointAnnotationManager();
+    _pointManager = await controller.annotations.createPointAnnotationManager();
     _polygonManager =
-        await controller.annotations!.createPolygonAnnotationManager();
+        await controller.annotations.createPolygonAnnotationManager();
     _outlineManager =
-        await controller.annotations!.createPolylineAnnotationManager();
+        await controller.annotations.createPolylineAnnotationManager();
 
     await _drawBoundary();
   }
 
-  // Draw the boundary polygon, border, and markers
 Future<void> _drawBoundary() async {
   await _pointManager?.deleteAll();
   await _polygonManager?.deleteAll();
@@ -73,7 +72,6 @@ Future<void> _drawBoundary() async {
 
   if (widget.boundaryPoints.length < 3) return;
 
-  // Add blue circle markers at each corner
   for (final point in widget.boundaryPoints) {
     await _pointManager?.create(
       mapbox.PointAnnotationOptions(
@@ -84,21 +82,18 @@ Future<void> _drawBoundary() async {
     );
   }
 
-  // Create closed ring for the polygon
   final List<mapbox.Position> ring = [
     ...widget.boundaryPoints.map((p) => p.coordinates),
     widget.boundaryPoints.first.coordinates,
   ];
 
-  // Transparent blue fill for the area
   await _polygonManager?.create(
     mapbox.PolygonAnnotationOptions(
       geometry: mapbox.Polygon(coordinates: [ring]),
-      fillColor: const Color(0xFF0D47A1).withOpacity(0.28).value,
+      fillColor: const Color(0xFF0D47A1).withValues(alpha:0.28).value,
     ),
   );
 
-  // Visible blue border around the area
   await _outlineManager?.create(
     mapbox.PolylineAnnotationOptions(
       geometry: mapbox.LineString(coordinates: ring),
@@ -107,7 +102,6 @@ Future<void> _drawBoundary() async {
     ),
   );
 
-  // Auto-zoom to fit the boundary on the map
   final lngs = widget.boundaryPoints.map((p) => p.coordinates.lng).toList();
   final lats = widget.boundaryPoints.map((p) => p.coordinates.lat).toList();
 
@@ -119,7 +113,6 @@ Future<void> _drawBoundary() async {
   final double centerLng = (minLng + maxLng) / 2;
   final double centerLat = (minLat + maxLat) / 2;
 
-  // crude zoom estimation (safe + stable)
   final double lngDiff = (maxLng - minLng).abs().toDouble();
   final double latDiff = (maxLat - minLat).abs().toDouble();
   final double maxDiff = math.max(lngDiff, latDiff);
@@ -154,7 +147,6 @@ Future<void> _drawBoundary() async {
 }
 
 
-  // 🔥 IMPORTANT FIX HERE
   Widget _buildPhoto(String path) {
     final bool isNetwork = path.startsWith('http');
 
@@ -168,7 +160,7 @@ Future<void> _drawBoundary() async {
               fit: BoxFit.cover,
               loadingBuilder: (c, w, p) =>
                   p == null ? w : const Center(child: CircularProgressIndicator()),
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (_, _, _) =>
                   const Icon(Icons.broken_image),
             )
           : Image.file(
@@ -188,7 +180,7 @@ Future<void> _drawBoundary() async {
   backgroundColor: const Color(0xFF0D47A1),
   actions: [
     StreamBuilder<bool>(
-      stream: _wishlistService.isWishlisted(widget.listingId), // TEMP id if needed
+      stream: _wishlistService.isWishlisted(widget.listingId), 
       builder: (context, snapshot) {
         final isFav = snapshot.data ?? false;
         return IconButton(
@@ -237,7 +229,7 @@ Future<void> _drawBoundary() async {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: widget.photoPaths.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                           const SizedBox(width: 12),
                       itemBuilder: (context, index) =>
                           _buildPhoto(widget.photoPaths[index]),

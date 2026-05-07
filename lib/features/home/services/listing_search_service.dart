@@ -20,7 +20,6 @@ class ListingSearchService {
                desc.contains('nh');
       }
 
-      // village / tehsil name
       return title.contains(q) || desc.contains(q);
     }).toList();
   }

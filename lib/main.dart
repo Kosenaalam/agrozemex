@@ -6,7 +6,6 @@ Future<void> main() async {
   try {
     await AppInit.initialize().timeout(const Duration(seconds: 10));
   } catch (e) {
-    // Log or show error app-wide (e.g., runApp(ErrorApp(e)))
     debugPrint('Init error: $e');
   }
   runApp(const AppRoot());

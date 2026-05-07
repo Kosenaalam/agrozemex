@@ -1,4 +1,3 @@
-// F:\agrozemex\lib\features\auth\screens\otp_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -58,7 +57,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       try {
                         await auth.verifyOtp(widget.verificationId, otp);
                         if (mounted) {
-                          // FIXED: Replace entire stack → go directly to WelcomeScreen
+                          
                           Navigator.pop(context);
                         }
                           
@@ -68,7 +67,7 @@ class _OtpScreenState extends State<OtpScreen> {
                           setState(() {
                             errorMessage = e.toString().contains('invalid-verification-code')
                                 ? 'Invalid OTP. Please try again.'
-                                : 'Error: $e';
+                                : 'Error: Something is wrong';
                           });
                         }
                       } finally {
@@ -76,7 +75,6 @@ class _OtpScreenState extends State<OtpScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                     // backgroundColor: const Color(0xFF0D47A1),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                     ),

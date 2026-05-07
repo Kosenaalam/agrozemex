@@ -5,7 +5,6 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import '../models/listing_card_model.dart';
 import '../services/listing_query_service.dart';
 
-/// Internal cluster representation
 class _MapCluster {
   final double minLat;
   final double minLng;
@@ -34,13 +33,11 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
   mapbox.PolygonAnnotationManager? _polygonManager;
   mapbox.CircleAnnotationManager? _circleManager;
 
-  static const double _gridSize = 0.02; // ~2km grid
+  static const double _gridSize = 0.02; 
   final List<_MapCluster> _clusters = [];
   bool _rendered = false;
 
-  // ------------------------------------------------------------
   // MAP CREATED
-  // ------------------------------------------------------------
   Future<void> _onMapCreated(mapbox.MapboxMap controller) async {
     _map = controller;
 
@@ -57,9 +54,7 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
     await _renderWithClustering(listings);
   }
 
-  // ------------------------------------------------------------
   // TAP HANDLER (SCREEN → GEO)
-  // ------------------------------------------------------------
   Future<void> _handleMapTap(mapbox.MapContentGestureContext context) async {
     if (_map == null) return;
 
@@ -77,9 +72,7 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
     }
   }
 
-  // ------------------------------------------------------------
   // CLUSTER LOGIC
-  // ------------------------------------------------------------
   Future<void> _renderWithClustering(List<ListingCardModel> listings) async {
     if (_rendered) return;
 
@@ -109,9 +102,7 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
     _rendered = true;
   }
 
-  // ------------------------------------------------------------
   // DRAW SINGLE POLYGON
-  // ------------------------------------------------------------
   Future<void> _drawPolygon(ListingCardModel item) async {
     if (_polygonManager == null) return;
     if (item.boundaryPoints.length < 3) return;
@@ -130,9 +121,7 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
     );
   }
 
-  // ------------------------------------------------------------
   // DRAW CLUSTER
-  // ------------------------------------------------------------
   Future<void> _drawCluster(List<ListingCardModel> items) async {
     if (_circleManager == null) return;
 
@@ -169,9 +158,7 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
     );
   }
 
-  // ------------------------------------------------------------
   // ZOOM INTO CLUSTER
-  // ------------------------------------------------------------
   Future<void> _zoomIntoCluster(_MapCluster cluster) async {
     if (_map == null) return;
 
@@ -192,9 +179,6 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
     _rendered = false;
   }
 
-  // ------------------------------------------------------------
-  // UI
-  // ------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(

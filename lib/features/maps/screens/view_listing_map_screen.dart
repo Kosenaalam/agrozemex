@@ -1,4 +1,3 @@
-// F:\agrozemex\lib\features\maps\screens\view_listing_map_screen.dart
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +15,6 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
   mapbox.MapboxMap? _mapController;
   mapbox.PolygonAnnotationManager? _polygonManager;
   mapbox.CircleAnnotationManager? _circleManager;
-  // Uint8List? _blueCircleIcon;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -25,14 +23,9 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
   @override
   void initState() {
     super.initState();
-    // _loadBlueCircleIcon();
     _fetchListing();
   }
 
-  // Future<void> _loadBlueCircleIcon() async {
-  //   final data = await rootBundle.load('assets/icons/blue_circle.png');
-  //   _blueCircleIcon = data.buffer.asUint8List();
-  // }
 
   Future<void> _fetchListing() async {
     try {
@@ -64,7 +57,6 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
         _isLoading = false;
       });
 
-      // Wait for map to be ready, then draw & zoom
       if (_mapController != null) {
         await _drawAndZoom();
       }
@@ -83,7 +75,6 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
     _polygonManager = await controller.annotations.createPolygonAnnotationManager();
     _circleManager = await controller.annotations.createCircleAnnotationManager();
 
-    // Draw & zoom once map is ready
     if (_boundaryPoints.isNotEmpty) {
       await _drawAndZoom();
     }
@@ -93,7 +84,6 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
     await _polygonManager?.deleteAll();
     await _circleManager?.deleteAll();
 
-    // Add blue circle markers
     for (final point in _boundaryPoints) {
       await _circleManager?.create(
         mapbox.CircleAnnotationOptions(
@@ -104,7 +94,6 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
       );
     }
 
-    // Draw polygon (fill + border)
     if (_boundaryPoints.length >= 3) {
       final ring = [
         ..._boundaryPoints.map((p) => p.coordinates),
@@ -119,10 +108,8 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
         ),
       );
 
-      // Optional border polyline if you want thicker outline
     }
 
-    // Zoom logic (same as your MapScreen)
     final lats = _boundaryPoints.map((p) => p.coordinates.lat).toList();
     final lngs = _boundaryPoints.map((p) => p.coordinates.lng).toList();
 

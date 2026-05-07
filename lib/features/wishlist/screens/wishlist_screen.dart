@@ -30,91 +30,110 @@ class WishlistScreen extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              return ListView(
-                children: snap.data!.docs.map((doc) {
+              return GridView.builder(
+                padding: const EdgeInsets.all(12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,             
+                  childAspectRatio: 0.75,         
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: snap.data!.docs.length,
+                itemBuilder: (context, index) {
+                  final doc = snap.data!.docs[index];
                   final data = doc.data() as Map<String, dynamic>;
-                 return Card(
-  elevation: 4,
-  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(16),
-  ),
-  child: InkWell(
-    borderRadius: BorderRadius.circular(16),
-    onTap: () {
-      // Open listing details
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ListingDetailScreen(
-            listingId: doc.id,
-            title: data['title'],
-            price: (data['price'] as num).toDouble(),
-            description: data['description'] ?? '',
-            areaInSqMeters: (data['area_sq_m'] as num).toDouble(),
-            boundaryPoints: (data['boundary_points'] as List)
-                .map((p) => mapbox.Point(
-                      coordinates: mapbox.Position(
-                        p['lng'],
-                        p['lat'],
+
+                  return Card(
+                    elevation: 5,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ListingDetailScreen(
+                              listingId: doc.id,
+                              title: data['title'],
+                              price: (data['price'] as num).toDouble(),
+                              description: data['description'] ?? '',
+                              areaInSqMeters: (data['area_sq_m'] as num).toDouble(),
+                              boundaryPoints: (data['boundary_points'] as List)
+                                  .map((p) => mapbox.Point(
+                                        coordinates: mapbox.Position(
+                                          p['lng'],
+                                          p['lat'],
+                                        ),
+                                      ))
+                                  .toList(),
+                              photoPaths: List<String>.from(data['photo_paths'] ?? []),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: 110, 
+                            width: double.infinity,
+                            child: (data['photo_paths'] as List? ?? []).isNotEmpty
+                                ? Image.network(
+                                    data['photo_paths'][0],
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      color: Colors.grey[200],
+                                      child: const Icon(Icons.image_not_supported_rounded, size: 50),
+                                    ),
+                                  )
+                                : Container(
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.image_not_supported_rounded, size: 50),
+                                  ),
+                          ),
+
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    data['title'] ?? 'Untitled Property',
+                                    style: const TextStyle(
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    '₹ ${data['price']}',
+                                    style: const TextStyle(
+                                      fontSize: 16.5,
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${(data['area_sq_m'] as num?)?.toStringAsFixed(2) ?? 0} sq m',
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ))
-                .toList(),
-            photoPaths: List<String>.from(data['photo_paths'] ?? []),
-          ),
-        ),
-      );
-    },
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // IMAGE
-        if ((data['photo_paths'] as List).isNotEmpty)
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Image.network(
-              data['photo_paths'][0],
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                data['title'],
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '₹ ${data['price']}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${data['area_sq_m']} sq m',
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  ),
-);
-
-                }).toList(),
+                    ),
+                  );
+                },
               );
             },
           );

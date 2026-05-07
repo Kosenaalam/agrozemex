@@ -1,4 +1,3 @@
-// F:\agrozemex\lib\features\auth\services\auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../shared/services/user_firestore_service.dart';
@@ -27,7 +26,7 @@ class AuthService extends ChangeNotifier {
         await _auth.signInWithCredential(cred);
       },
       verificationFailed: (e) {
-        throw e; // IMPROVED: Propagate error
+        throw e; 
       },
       codeAutoRetrievalTimeout: (_) {},
     );
@@ -41,16 +40,15 @@ class AuthService extends ChangeNotifier {
       );
       await _auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (e) {
-      // FIXED: Specific handling
       if (e.code == 'invalid-verification-code') {
         throw 'Invalid OTP. Please try again.';
       } else if (e.code == 'session-expired') {
         throw 'OTP session expired. Request a new one.';
       } else {
-        throw 'Authentication error: ${e.message}';
+        throw 'Authentication error.';
       }
     } catch (e) {
-      throw 'Unexpected error: $e. Please try again.';
+      throw 'Unexpected error. Please try again.';
     }
   }
 

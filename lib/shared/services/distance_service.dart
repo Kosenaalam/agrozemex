@@ -2,12 +2,10 @@ import 'dart:math' as math;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 
-// Calculate distance (in meters / km) between the buyer and a land polygon.
 
 class DistanceService {
-  static const double _earthRadius = 6371000; // meters
+  static const double _earthRadius = 6371000; 
 
-  /// Calculate distance (meters) between user and land polygon
   double distanceToPolygon({
     required double userLat,
     required double userLng,
@@ -24,7 +22,6 @@ class DistanceService {
     );
   }
 
-  /// Calculate centroid of polygon
   mapbox.Position _calculateCentroid(List<mapbox.Point> points) {
     double latSum = 0;
     double lngSum = 0;
@@ -40,7 +37,6 @@ class DistanceService {
     );
   }
 
-  /// Haversine distance (meters)
   double _haversineDistance(
     double lat1,
     double lng1,

@@ -50,6 +50,7 @@ dependencies:
   sliding_up_panel: ^2.0.0+1  # For premium draggable bottom sheet
   image_picker: ^1.2.1
   firebase_storage: ^11.6.0
+  cloud_functions: ^4.7.0
 
 
 flutter: 

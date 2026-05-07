@@ -4,6 +4,7 @@ class ListingFilterModel {
   final String? waterSource;
   final double? minAreaSqM;
   final double? maxAreaSqM;
+  final String? village;
 
   const ListingFilterModel({
     this.roadAccess,
@@ -11,8 +12,9 @@ class ListingFilterModel {
     this.waterSource,
     this.minAreaSqM,
     this.maxAreaSqM,
+    this.village,
   });
 
-  /// Default empty filter
   static const empty = ListingFilterModel();
 }
+ // this is for query filtering in the search results, not for the listing form

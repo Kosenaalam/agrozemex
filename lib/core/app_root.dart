@@ -1,4 +1,5 @@
-// F:\agrozemex\lib\core\app_root.dart
+import 'package:agrozemex/features/crops/services/crop_query_service.dart';
+import 'package:agrozemex/features/crops/services/crop_search_service.dart';
 import 'package:agrozemex/features/welcome/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,12 +24,14 @@ class AppRoot extends StatelessWidget {
         Provider(create: (_) => ListingQueryService()),
         Provider(create: (_) => ListingSearchService()),
         Provider(create: (_) => StorageService()),
+        Provider(create: (_) => CropQueryService()),
+        Provider(create: (_) => CropSearchService()),
         Provider<LocationService>(create: (_) => AppInit.locationService),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'AgroZemex',
-        theme: ThemeData( // IMPROVED: Global theme for consistency
+        theme: ThemeData( 
           primaryColor: const Color(0xFF0D47A1),
           fontFamily: GoogleFonts.poppins().fontFamily,
           elevatedButtonTheme: ElevatedButtonThemeData(

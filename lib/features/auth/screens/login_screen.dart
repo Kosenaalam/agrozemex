@@ -1,4 +1,3 @@
-// F:\agrozemex\lib\features\auth\screens\login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -13,9 +12,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController phoneCtrl = TextEditingController();
-  String? errorMessage; // IMPROVED: For displaying validation errors
-  bool isLoading = false; // IMPROVED: Loading state for button
-
+  String? errorMessage; 
+  bool isLoading = false; 
   @override
   Widget build(BuildContext context) {
     final auth = context.read<AuthService>();
@@ -23,32 +21,32 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Login'),
-        backgroundColor: const Color(0xFF0D47A1), // IMPROVED: Consistent color
+        backgroundColor: const Color(0xFF0D47A1),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // IMPROVED: Centered content
+          mainAxisAlignment: MainAxisAlignment.center, 
           children: [
             TextField(
               controller: phoneCtrl,
-              keyboardType: TextInputType.phone, // IMPROVED: Keyboard type for phone
+              keyboardType: TextInputType.phone, 
               decoration: InputDecoration(
                 labelText: 'Phone (+91XXXXXXXXXX)',
-                errorText: errorMessage, // IMPROVED: Show errors
-                prefixIcon: const Icon(Icons.phone), // IMPROVED: Icon for UX
+                errorText: errorMessage, 
+                prefixIcon: const Icon(Icons.phone), 
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12), // IMPROVED: Rounded borders
+                  borderRadius: BorderRadius.circular(12), 
                 ),
               ),
             ),
             const SizedBox(height: 20),
             isLoading
-                ? const Center(child: CircularProgressIndicator()) // IMPROVED: Loading indicator
+                ? const Center(child: CircularProgressIndicator(),)
                 : ElevatedButton(
                     onPressed: () async {
                       final phone = phoneCtrl.text.trim();
-                      if (!phone.startsWith('+91') || phone.length != 13) { // IMPROVED: Validation
+                      if (!phone.startsWith('+91') || phone.length != 13) { 
                         setState(() {
                           errorMessage = 'Invalid phone number. Use +91 followed by 10 digits.';
                         });
@@ -69,15 +67,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar( // IMPROVED: User feedback on error
-                          SnackBar(content: Text('Error sending OTP: $e')),
+                        ScaffoldMessenger.of(context).showSnackBar( 
+                          SnackBar(content: Text('Error sending OTP. Something is wrong')),
                         );
                       } finally {
                         setState(() => isLoading = false);
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                    //  backgroundColor: const Color(0xFF0D47A1), // IMPROVED: Theme color
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 15),
                     ),

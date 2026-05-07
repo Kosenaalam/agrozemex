@@ -1,4 +1,3 @@
-// F:\agrozemex\lib\features\auth\screens\seller_dashboard.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,7 +9,7 @@ class SellerDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>( // FIXED: No Expanded—parent handles
+    return StreamBuilder<QuerySnapshot>( 
       stream: FirebaseFirestore.instance
           .collection('listings')
           .where('created_by', isEqualTo: userId)
@@ -37,7 +36,7 @@ class SellerDashboard extends StatelessWidget {
             final title = listing['title'] ?? 'N/A';
             final isActive = listing['is_active'] as bool? ?? true;
 
-            return Card( // FIXED: Beautiful card UI
+            return Card( 
               elevation: 2,
               margin: const EdgeInsets.symmetric(vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -49,7 +48,7 @@ class SellerDashboard extends StatelessWidget {
                   children: [
                     Switch(
                       value: isActive,
-                      activeColor: Colors.green,
+                      activeThumbColor: Colors.green,
                       onChanged: (value) async {
                         await FirebaseFirestore.instance.collection('listings').doc(id).update({'is_active': value});
                       },
@@ -63,15 +62,6 @@ class SellerDashboard extends StatelessWidget {
                         );
                       },
                     ),
-                    // IconButton( // NEW: Edit button
-                    //   icon: const Icon(Icons.edit, color: Color(0xFF0D47A1)),
-                    //   onPressed: () {
-                    //     Navigator.push(
-                    //       context,
-                    //       MaterialPageRoute(builder: (_) => EditListingScreen(listingId: id)),
-                    //     );
-                    //   },
-                    // ),
                   ],
                 ),
               ),

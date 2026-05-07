@@ -1,18 +1,16 @@
-// F:\agrozemex\lib\features\home\screens\home_screen.dart
-// (No changes needed here—your provided version with debounce, deduping, and resets is already correct)
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/services/auth_service.dart';
 import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
+import 'package:agrozemex/shared/widget/landcardsell.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
-import '../services/listing_search_service.dart';
 import '../../maps/screens/map_screen.dart';
 import '../models/listing_card_model.dart';
 import '../services/listing_query_service.dart';
 import '../screens/listing_detail_screen.dart';
-import 'dart:async'; // CHANGED: Added import for Timer to support debounce
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,19 +26,17 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   bool _hasMore = true;
 
-  // Mini map cache
   final Map<String, Widget> _miniMapCache = {};
 
-  // Add a TextEditingController for better control over the search field
   final TextEditingController _searchController = TextEditingController();
 
-  Timer? _debounce; // CHANGED: Added Timer for debouncing search input
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    final service = context.read<ListingQueryService>(); // CHANGED: Added this line to get service
-    service.resetPagination(); // CHANGED: Added resetPagination() to force reload on screen open
+    final service = context.read<ListingQueryService>(); 
+    service.resetPagination();
     _loadMore();
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
@@ -50,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    // Listen to controller for dynamic UI changes (e.g., show clear button)
     _searchController.addListener(() {
       setState(() {});
     });
@@ -65,30 +60,26 @@ class _HomeScreenState extends State<HomeScreen> {
     final service = context.read<ListingQueryService>();
     final newListings =
         await service.fetchNextPage(searchQuery: _searchQuery);
-        print('Fetched ${newListings.length} new listings');
 
     if (!mounted) return;
 
     setState(() {
       if (newListings.isEmpty) {
-        _hasMore = false; // 🔒 stop loader forever
+        _hasMore = false; 
       } else {
-        // CHANGED: Added deduping by id to prevent duplicate listings
         final existingIds = _listings.map((e) => e.id).toSet();
         final uniqueNew = newListings.where((e) => !existingIds.contains(e.id)).toList();
         _listings.addAll(uniqueNew);
       }
     });
   } catch (e) {
-    // 🔒 SAFETY: never hang UI
-    debugPrint('LoadMore error: $e');
+    debugPrint('LoadMore error.somethinng went wrong');
     if (mounted) {
       setState(() {
         _hasMore = false;
       });
     }
   } finally {
-    // 🔥 GUARANTEED RELEASE
     if (mounted) {
       setState(() {
         _isLoading = false;
@@ -97,7 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-  // Clear search function
   void _clearSearch() {
   final service = context.read<ListingQueryService>();
   service.resetPagination();
@@ -115,91 +105,87 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final searchService = context.read<ListingSearchService>();
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0D47A1),
-        foregroundColor: Colors.white,
-        title: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15), // Subtle background for search bar
-            borderRadius: BorderRadius.circular(30), // Rounded corners
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+        title: Text('Land for sale'),
+        centerTitle: true,
+      
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+        ),
+        elevation: 4,
+      ),
+      body:  Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .15),
+                  borderRadius: BorderRadius.circular(30), 
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    final query = value.toLowerCase().trim();
+                    _debounce?.cancel();
+                    _debounce = Timer(const Duration(milliseconds: 300), () {
+                      final service = context.read<ListingQueryService>();
+                      
+                      service.resetPagination();
+                      setState(() {
+                        _searchQuery = query;
+                        _listings.clear();
+                        _hasMore = true;
+                        _isLoading = false;
+                        
+                      });
+                      _loadMore();
+                    });
+                  },
+                  style: GoogleFonts.poppins(color: Colors.black),
+                  decoration: InputDecoration(
+                    hintText: 'Search village / tehsil ',
+                    hintStyle: GoogleFonts.poppins(color: Colors.black12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    prefixIcon: const Icon(Icons.search, color: Colors.black12),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.white70),
+                            onPressed: _clearSearch,
+                          )
+                        : null, 
+                  ),
+                ),
+                         ),
+              ),          
+      Expanded(
+        child: _listings.isEmpty && !_isLoading
+            ? const Center(child: Text('No listings found'))
+            : GridView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.75,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: _listings.length + (_isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _listings.length) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return _buildLandCard(context, _listings[index]);
+                },
               ),
+      ),
             ],
           ),
-          child: TextField(
-            controller: _searchController,
-            onChanged: (value) {
-              final query = value.toLowerCase().trim();
-              // CHANGED: Added debounce to prevent race conditions on fast typing
-              _debounce?.cancel();
-              _debounce = Timer(const Duration(milliseconds: 300), () {
-                // 1. Get the service
-                final service = context.read<ListingQueryService>();
-                
-                // 2. CRITICAL: Reset the cursor so the new search starts fresh
-                service.resetPagination();
-                setState(() {
-                  _searchQuery = query;
-                  _listings.clear();
-                  _hasMore = true;
-                  _isLoading = false;
-                  
-                });
-                _loadMore();
-              });
-            },
-            style: GoogleFonts.poppins(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Search village / tehsil ',
-              hintStyle: GoogleFonts.poppins(color: Colors.white70),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              prefixIcon: const Icon(Icons.search, color: Colors.white),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.white70),
-                      onPressed: _clearSearch,
-                    )
-                  : null, // Dynamic clear button
-            ),
-          ),
-        ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)), // Curved bottom for AppBar
-        ),
-        elevation: 4, // Slight elevation for depth
-         //--------------------------
-         
-
-
-        //---------------------------
-      ),
-      body: _listings.isEmpty && !_isLoading
-          ? const Center(child: Text('No listings found'))
-          : GridView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: _listings.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _listings.length) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return _buildLandCard(context, _listings[index]);
-              },
-            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -211,7 +197,10 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add_location_alt, color: Colors.white, size: 30),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-       bottomNavigationBar: const CustomBottomNav(),
+       bottomNavigationBar: const CustomBottomNav(
+        currentIndex: 1,
+        currentScreen: 'home',
+       ),
     );
   }
 
@@ -221,8 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return InkWell(
     onTap: () {
-  final auth = context.read<AuthService>(); // Safe read using outer context (no Builder needed)
-
+  final auth = context.read<AuthService>(); 
   if (auth.user != null) {
     Navigator.push(
       context,
@@ -359,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
-    _debounce?.cancel(); // CHANGED: Added cancel to clean up debounce timer
+    _debounce?.cancel(); 
     super.dispose();
   }
 }

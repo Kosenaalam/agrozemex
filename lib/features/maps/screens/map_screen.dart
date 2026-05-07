@@ -8,8 +8,6 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:agrozemex/features/maps/screens/listing_details_screen.dart';
 
-/// Professional Land Marking Screen for Agrozemex
-/// Premium, attractive, clean UI with modern Material 3 design
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -18,24 +16,19 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  // Controllers & Managers
   mapbox.MapboxMap? _mapController;
   mapbox.PointAnnotationManager? _pointManager;
   mapbox.PolygonAnnotationManager? _polygonManager;
   mapbox.PolylineAnnotationManager? _outlineManager;
 
-  // Data
   final List<mapbox.Point> _boundaryPoints = [];
   Uint8List? _blueCircleIcon;
 
-  // State
   double _areaInSqMeters = 0.0;
   bool _isSaved = false;
 
-  // UI Controllers
   final PanelController _panelController = PanelController();
 
-  // Constants
   static const Color _primaryBlue = Color(0xFF0D47A1);
   static const Color _accentGreen = Color(0xFF2E7D32);
   static const Color _lightGray = Color(0xFFF5F7FA);
@@ -47,7 +40,6 @@ class _MapScreenState extends State<MapScreen> {
     _requestLocationAndCenterMap();
   }
 
-  /// Load custom blue circle marker (64x64 PNG with transparent background)
   Future<void> _loadCustomMarkerIcon() async {
     final ByteData data = await rootBundle.load('assets/icons/blue_circle.png');
     setState(() {
@@ -55,7 +47,6 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  /// Request location permission and center map on user's position
   Future<void> _requestLocationAndCenterMap() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
@@ -82,15 +73,13 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  /// Map ready callback — initialize annotation managers
   void _onMapCreated(mapbox.MapboxMap controller) async {
     _mapController = controller;
 
-    _pointManager = await controller.annotations!.createPointAnnotationManager();
-    _polygonManager = await controller.annotations!.createPolygonAnnotationManager();
-    _outlineManager = await controller.annotations!.createPolylineAnnotationManager();
+    _pointManager = await controller.annotations.createPointAnnotationManager();
+    _polygonManager = await controller.annotations.createPolygonAnnotationManager();
+    _outlineManager = await controller.annotations.createPolylineAnnotationManager();
 
-    // Enable dragging only if not saved
     _pointManager?.dragEvents(onChanged: (annotation) async {
       if (_isSaved) return;
 
@@ -108,7 +97,6 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  /// Handle map tap — add new corner point
   Future<void> _onMapTap(mapbox.MapContentGestureContext context) async {
     if (_isSaved) return;
 
@@ -131,7 +119,6 @@ class _MapScreenState extends State<MapScreen> {
     await _updatePolygon();
   }
 
-  /// Update polygon fill and visible border
   Future<void> _updatePolygon() async {
     await _polygonManager?.deleteAll();
     await _outlineManager?.deleteAll();
@@ -140,10 +127,9 @@ class _MapScreenState extends State<MapScreen> {
 
     final List<mapbox.Position> closedRing = [
       ..._boundaryPoints.map((p) => p.coordinates),
-      _boundaryPoints.first.coordinates, // Close the shape
+      _boundaryPoints.first.coordinates, 
     ];
 
-    // Transparent fill
     await _polygonManager?.create(
       mapbox.PolygonAnnotationOptions(
         geometry: mapbox.Polygon(coordinates: [closedRing]),
@@ -151,7 +137,6 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
 
-    // Visible blue border
     await _outlineManager?.create(
       mapbox.PolylineAnnotationOptions(
         geometry: mapbox.LineString(coordinates: closedRing),
@@ -161,7 +146,6 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  /// Accurate area calculation using spherical geometry
   double _calculateAreaSqMeters() {
     if (_boundaryPoints.length < 3) return 0.0;
 
@@ -183,7 +167,6 @@ class _MapScreenState extends State<MapScreen> {
     return area.abs();
   }
 
-  /// Action: Undo last point
   void _undo() async {
     if (_boundaryPoints.isNotEmpty && !_isSaved) {
       setState(() {
@@ -193,7 +176,6 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  /// Action: Clear all
   void _clear() async {
     if (!_isSaved) {
       setState(() {
@@ -206,7 +188,6 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  /// Action: Save and calculate area
   void _save() {
     if (_boundaryPoints.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -240,7 +221,6 @@ class _MapScreenState extends State<MapScreen> {
 );
   }
 
-  /// Build premium draggable bottom panel
   Widget _buildControlPanel() {
     return Container(
       decoration: const BoxDecoration(
@@ -253,7 +233,6 @@ class _MapScreenState extends State<MapScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Container(width: 48, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
@@ -283,7 +262,6 @@ class _MapScreenState extends State<MapScreen> {
                  SingleChildScrollView(
                 scrollDirection: Axis.horizontal, 
               child:  Row(
-                 // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     
                      _actionButton('Undo', Icons.undo, _undo, enabled: !_isSaved),
@@ -356,13 +334,12 @@ class _MapScreenState extends State<MapScreen> {
               onMapCreated: _onMapCreated,
               onTapListener: _onMapTap,
             ),
-            // Premium center crosshair
             Center(
               child: Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha:0.9),
                   shape: BoxShape.circle,
                   boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12)],
                 ),

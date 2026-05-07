@@ -1,7 +1,7 @@
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 
-
+// this is for search results and listing details screen, not the map clusters
 
 class ListingCardModel {
   final String id;
@@ -15,13 +15,9 @@ class ListingCardModel {
   final bool? roadAccess;
   final String? soilType;
   final String? waterSource;
-  //it remove listing old land
- // final String village;
  
   
-// 🔍 Searchable tokens prepared at write-time
   final List<String> searchTokens;
-  // ADD THESE TWO FIELDS
   final double? centerLat;
   final double? centerLng;
   
@@ -41,8 +37,6 @@ class ListingCardModel {
     this.roadAccess,
      this.soilType,
     this.waterSource,
-  //   required this.village,
-    // 🔍 
     required this.searchTokens,
     this.centerLat,
     this.centerLng,

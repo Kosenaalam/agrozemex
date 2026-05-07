@@ -1,5 +1,3 @@
-// F:\agrozemex\lib\features\home\services\listing_query_service.dart
-// CHANGED: Made _normalize and _expandWithSynonyms public (removed _) so they can be reused in save logic
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
@@ -14,59 +12,39 @@ class ListingQueryService {
   final DistanceService _distanceService = DistanceService();
   final SearchRankService _searchRankService = SearchRankService();
 
-  static const int pageSize = 50; // Larger page for efficiency, but tune based on perf
+  static const int pageSize = 50; 
   DocumentSnapshot? _lastDocument;
   bool _hasMore = true;
 
-  // Synonym mapping for common terms (expandable for industrial-grade handling)
-  // Key: base term, Value: list of synonyms including the base
-  // Example: 'road' maps to ['road', 'highway', 'street', 'pathway']
-  // Add domain-specific synonyms for agriculture/land (e.g., 'tehsil' variations, 'village' in local languages)
+  
   final Map<String, List<String>> _synonyms = {
     'road': ['road', 'highway', 'street', 'pathway', 'lane'],
-    'village': ['village', 'gaon', 'gram', 'pind'], // Common variations in Hindi/Punjabi
-    'tehsil': ['tehsil', 'taluka', 'mandal', 'block'], // Regional equivalents
+    'village': ['village', 'gaon', 'gram', 'pind'], 
+    'tehsil': ['tehsil', 'taluka', 'mandal', 'block'], 
     'farm': ['farm', 'khet', 'land', 'plot', 'acreage'],
     'water': ['water', 'paani', 'irrigation', 'borewell'],
-    // Add more as needed for industrial expansion (e.g., from a configurable file or DB)
   };
 
-  // Normalization function: Industrial-grade handling
-  // - Lowercase
-  // - Trim whitespace
-  // - Remove non-alphanumeric (keep spaces for multi-word)
-  // - Handle common abbreviations/misspellings (expandable rules)
-  // - Remove diacritics if needed (for international names, but simple here)
-  // CHANGED: Made public for reuse in save logic
   String normalize(String input) {
     String normalized = input.toLowerCase().trim();
-    normalized = normalized.replaceAll(RegExp(r'[^a-z0-9 ]'), ''); // Remove special chars
-    // Custom rules for village/tehsil normalization (e.g., handle common prefixes/suffixes)
+    normalized = normalized.replaceAll(RegExp(r'[^a-z0-9 ]'), ''); 
     normalized = normalized.replaceAll('st.', 'street').replaceAll('hwy', 'highway');
-    // Add more rules for Indian place names (e.g., 'pur' suffix for villages)
     if (normalized.endsWith('pur') || normalized.endsWith('nagar')) {
-      normalized = normalized.replaceAll('pur', 'pur').replaceAll('nagar', 'nagar'); // Placeholder for advanced stemming
+      normalized = normalized.replaceAll('pur', 'pur').replaceAll('nagar', 'nagar'); 
     }
     return normalized;
   }
 
-  // Expand token with synonyms
-  // CHANGED: Made public for reuse in save logic
+ 
   List<String> expandWithSynonyms(String token) {
     for (final entry in _synonyms.entries) {
       if (entry.value.contains(token)) {
-        return entry.value; // Return all synonyms if token matches any
+        return entry.value; 
       }
     }
-    return [token]; // No synonyms, return original
+    return [token]; 
   }
 
-  // Extract and process search tokens from query
-  // - Normalize entire query
-  // - Split into tokens (>2 chars)
-  // - Expand each with synonyms
-  // - Flatten and unique
-  // - Limit to 10 for Firestore arrayContainsAny constraint
   List<String> _getSearchTokens(String query) {
     if (query.isEmpty) return [];
     final normalizedQuery = normalize(query);
@@ -76,20 +54,8 @@ class ListingQueryService {
       expanded.addAll(expandWithSynonyms(token));
     }
     final uniqueList = expanded.toList();
-    // Sort by relevance if needed (e.g., original tokens first), but simple here
     return uniqueList.length > 10 ? uniqueList.sublist(0, 10) : uniqueList;
   }
-
-  // Token schema (frozen): search_tokens array in Firestore should contain:
-  // - Normalized village name and its synonyms
-  // - Normalized tehsil name and its synonyms
-  // - Normalized highway/road names and synonyms
-  // - Keywords from title/description (normalized)
-  // - Soil type, water source (as tags if searchable)
-  // Assumption: When creating/updating listing in Firestore, use similar normalize and expandWithSynonyms
-  // to populate search_tokens. This ensures consistency between query and storage.
-  // Example: For a listing with village: 'Agra Gaon', tehsil: 'Agra Taluka', road: 'NH2 Highway'
-  // Tokens: ['agra gaon', 'agra', 'gaon', 'village', 'gram', 'agra taluka', 'agra', 'taluka', 'tehsil', 'mandal', 'block', 'nh2 highway', 'nh2', 'highway', 'road', 'street']
 
   List<ListingCardModel> _applyFilters(
     List<ListingCardModel> listings,
@@ -125,8 +91,6 @@ class ListingQueryService {
       title: data['title'],
       price: (data['price'] as num).toDouble(),
       description: data['description'],
-      // it remove previous listing
-      //  village: data['village'],
       areaInSqMeters: (data['area_sq_m'] as num).toDouble(),
       boundaryPoints: boundaryPoints,
       photoPaths: List<String>.from(data['photo_paths'] ?? []),
@@ -139,13 +103,12 @@ class ListingQueryService {
     );
   }
 
-  // For map: Fetch within bounds (assume listings have 'center_lat' and 'center_lng' fields precomputed)
   Future<List<ListingCardModel>> fetchListingsInBounds({
     required double minLat,
     required double minLng,
     required double maxLat,
     required double maxLng,
-    int limit = 100, // Limit for map to prevent overload
+    int limit = 100, 
   }) async {
     Position? position = LocationService().currentPosition;
 
@@ -175,7 +138,6 @@ class ListingQueryService {
     String searchQuery = '',
     ListingFilterModel filter = ListingFilterModel.empty,
   }) async {
-    // CHANGED: Moved safety reset before the early return check for _hasMore
     if (searchQuery.isEmpty && _lastDocument != null) {
       resetPagination();
     }
@@ -194,14 +156,12 @@ class ListingQueryService {
       query = query.where('search_tokens', arrayContainsAny: searchTokens);
     }
 
-    // Add more server-side filters if possible (e.g., for area, if indexed)
     if (filter.minAreaSqM != null) {
       query = query.where('area_sq_m', isGreaterThanOrEqualTo: filter.minAreaSqM);
     }
     if (filter.maxAreaSqM != null) {
       query = query.where('area_sq_m', isLessThanOrEqualTo: filter.maxAreaSqM);
     }
-    // Similar for other fields if they support querying
 
     if (_lastDocument != null) {
       query = query.startAfterDocument(_lastDocument!);
@@ -222,10 +182,9 @@ class ListingQueryService {
     list.sort((a, b) {
       final scoreA = _searchRankService.calculateScore(item: a, query: searchQuery);
       final scoreB = _searchRankService.calculateScore(item: b, query: searchQuery);
-      return scoreB.compareTo(scoreA); // Higher score first
+      return scoreB.compareTo(scoreA);
     });
 
-    // Secondary sort by distance
     list.sort((a, b) {
       if (a.distanceMeters == null && b.distanceMeters == null) return 0;
       if (a.distanceMeters == null) return 1;

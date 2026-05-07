@@ -7,22 +7,73 @@ class StorageService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Upload multiple images and return their download URLs
-  Future<List<String>> uploadListingImages(List<File> images) async {
-    final List<String> downloadUrls = [];
-    final String uid = _auth.currentUser!.uid;
-    final String listingId = DateTime.now().millisecondsSinceEpoch.toString();
+//   Future<List<String>> uploadListingImages(List<File> images) async {
+//     final List<String> downloadUrls = [];
+//     final String uid = _auth.currentUser!.uid;
+//     final String listingId = DateTime.now().millisecondsSinceEpoch.toString();
 
-    for (int i = 0; i < images.length; i++) {
-      final ref = _storage.ref(
-        'listings/$uid/$listingId/image_$i.jpg',
-      );
+//     for (int i = 0; i < images.length; i++) {
+//       print("Uploading image $i...");
+//       final ref = _storage.ref(
+//         'listings/$uid/$listingId/image_$i.jpg',
+//       );
+//       //-----removable
 
-      final uploadTask = await ref.putFile(images[i]);
-      final url = await uploadTask.ref.getDownloadURL();
-      downloadUrls.add(url);
+//       final file = images[i];
+
+// if (!await file.exists()) {
+//   print("FILE DOES NOT EXIST ❌: ${file.path}");
+//   continue;
+// }
+// //------------
+//    try{
+//       final uploadTask = await ref.putFile(images[i]);
+//       final url = await uploadTask.ref.getDownloadURL();
+//       downloadUrls.add(url);
+//    } catch (e) {
+//      print("STORAGE ERROR ❌: $e");
+//   throw Exception("Image upload failed");
+//    }
+//     }
+
+//     return downloadUrls;
+//   }
+
+Future<List<String>> uploadListingImages(List<File> images) async {
+  final List<String> downloadUrls = [];
+  final String uid = _auth.currentUser!.uid;
+  final String listingId = DateTime.now().millisecondsSinceEpoch.toString();
+
+  for (int i = 0; i < images.length; i++) {
+    print("Uploading image $i...");
+
+    final ref = _storage.ref('listings/$uid/$listingId/image_$i.jpg');
+
+    final file = images[i];
+
+    if (!await file.exists()) {
+      print("FILE DOES NOT EXIST ❌: ${file.path}");
+      continue;
     }
 
-    return downloadUrls;
+    try {
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+      );
+
+      final uploadTask = await ref.putFile(file, metadata);
+
+      final url = await uploadTask.ref.getDownloadURL();
+
+      downloadUrls.add(url);
+
+      print("UPLOAD SUCCESS ✅: $url");
+    } catch (e) {
+      print("STORAGE ERROR ❌: $e");
+      throw Exception("Image upload failed");
+    }
   }
+
+  return downloadUrls;
+}
 }

@@ -34,6 +34,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   String? _soilType = 'Alluvial';
   String? _waterSource = 'Tube Well';
   bool _roadAccess = true;
+  bool _isSubmitting = false;
 
    final List<XFile> _pickedImages = [];
    final ImagePicker _picker = ImagePicker();
@@ -70,20 +71,24 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   }
 
  void _submitListing() async {
+  if (_isSubmitting) return;
+  setState(() => _isSubmitting = true);
+
    if (_formKey.currentState!.validate() && _pickedImages.isNotEmpty) {
     try {
-      //1️⃣ Get StorageService
       final storageService = context.read<StorageService>();
 
-    //  2️⃣ Convert XFile → File
       final files = _pickedImages.map((e) => File(e.path)).toList();
+      print("STEP 1: Start submit");
 
-      // 3️⃣ Upload images to Firebase Storage
       final imageUrls = await storageService.uploadListingImages(files);
+      print("STEP 2: Images uploaded: ${imageUrls.length}");
 
-      // 4️⃣ Save listing to Firestore with IMAGE URLs
+
       if(!mounted) return;
       final firestoreService = context.read<UserFirestoreService>();
+      print("STEP 3: Saving to Firestore");
+
 
       await firestoreService.saveLandListing(
         title: _titleController.text,
@@ -91,12 +96,13 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         description: _descriptionController.text,
         areaInSqMeters: widget.areaInSqMeters,
         boundaryPoints: widget.boundaryPoints,
-         photoPaths: imageUrls, // ✅ URLs, NOT local paths
+         photoPaths: imageUrls,
          village: _villageController.text,
         soilType: _soilType!,
         waterSource: _waterSource!,
         roadAccess: _roadAccess,
       );
+      print("STEP 4: SAVED SUCCESSFULLY");
     if(!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -107,6 +113,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
 
       Navigator.popUntil(context, (route) => route.isFirst);
     } catch (e) {
+      print("Firebase Error: $e"); // Add this line to see the error in terminal
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving listing: $e')),
       );
@@ -166,6 +173,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
 
               TextFormField(
                 controller: _titleController,
+                maxLength: 12,
                 decoration: InputDecoration(labelText: 'Land Title *', prefixIcon: const Icon(Icons.title), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                 validator: (v) => v?.isEmpty == true ? 'Required' : null,
               ),
@@ -180,7 +188,8 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               const SizedBox(height: 16),
 
               TextFormField(
-                controller: _villageController,  // Add a new TextEditingController _villageController = TextEditingController();
+                controller: _villageController,  
+                maxLength: 15,
                 decoration: InputDecoration(
                 labelText: 'Village Name',
                 prefixIcon: Icon(Icons.location_city),
@@ -236,7 +245,6 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                 ),
               const SizedBox(height: 24),
 
-              // Other fields (soil, water, road)
               DropdownButtonFormField<String>(
                 initialValue: _soilType,
                 decoration: InputDecoration(labelText: 'Soil Type', prefixIcon: const Icon(Icons.texture), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
@@ -256,20 +264,23 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               SwitchListTile(
                 title: Text('Road Access', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
                 value: _roadAccess,
-               activeColor: _accentGreen,
+               activeThumbColor: _accentGreen,
                 thumbColor: WidgetStateProperty.all(Colors.white),
-                trackColor: WidgetStateProperty.all(_accentGreen.withOpacity(0.5)),
+                trackColor: WidgetStateProperty.all(_accentGreen.withValues(alpha:0.5)),
                 onChanged: (v) => setState(() => _roadAccess = v),
               ),
               const SizedBox(height: 32),
 
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _submitListing,
-                  style: ElevatedButton.styleFrom(backgroundColor: _accentGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                  child: Text('Submit Listing', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              SafeArea(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submitListing,
+                    style: ElevatedButton.styleFrom(backgroundColor: _accentGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                    child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white)
+                    : Text('Submit Listing', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                  ),
                 ),
               ),
             ],
