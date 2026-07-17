@@ -169,4 +169,4 @@ Multi-language support
 ⭐ Final Statement
 Agrozemex is a real-world production system, built with scalable architecture and deep performance optimization, capable of supporting 1 million+ users with proper infrastructure scaling.
 
-Built with ❤️ for Indian farmers and agribusinesses
+Built  for Indian farmers and agribusinesses
