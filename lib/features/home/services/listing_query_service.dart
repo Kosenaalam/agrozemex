@@ -15,6 +15,8 @@ class ListingQueryService {
   static const int pageSize = 50; 
   DocumentSnapshot? _lastDocument;
   bool _hasMore = true;
+  String _lastSearchQuery = '';
+  ListingFilterModel _lastFilter = ListingFilterModel.empty;
 
   
   final Map<String, List<String>> _synonyms = {
@@ -86,6 +88,11 @@ class ListingQueryService {
             boundaryPoints: boundaryPoints,
           );
 
+    final double? centerLat = data['center_lat'] as double? ??
+        (boundaryPoints.isEmpty ? null : boundaryPoints.map((p) => p.coordinates.lat).reduce((a, b) => a + b) / boundaryPoints.length);
+    final double? centerLng = data['center_lng'] as double? ??
+        (boundaryPoints.isEmpty ? null : boundaryPoints.map((p) => p.coordinates.lng).reduce((a, b) => a + b) / boundaryPoints.length);
+
     return ListingCardModel(
       id: doc.id,
       title: data['title'],
@@ -99,7 +106,8 @@ class ListingQueryService {
       soilType: data['soil_type'] as String?,
       waterSource: data['water_source'] as String?,
       searchTokens: searchTokens,
-    
+      centerLat: centerLat,
+      centerLng: centerLng,
     );
   }
 
@@ -112,17 +120,22 @@ class ListingQueryService {
   }) async {
     Position? position = LocationService().currentPosition;
 
+    // Filter latitude bounds on Firestore, and longitude bounds in-memory
+    // to avoid Firestore compound inequality bad-filter crashes.
     final query = _db
         .collection('listings')
         .where('center_lat', isGreaterThanOrEqualTo: minLat)
         .where('center_lat', isLessThanOrEqualTo: maxLat)
-        .where('center_lng', isGreaterThanOrEqualTo: minLng)
-        .where('center_lng', isLessThanOrEqualTo: maxLng)
-        .orderBy('created_at', descending: true)
         .limit(limit);
 
     final snapshot = await query.get();
-    final list = snapshot.docs.map((doc) => _docToModel(doc, position)).toList();
+    var list = snapshot.docs.map((doc) => _docToModel(doc, position)).toList();
+
+    // In-memory longitude boundary filtering
+    list = list.where((item) {
+      if (item.centerLng == null) return false;
+      return item.centerLng! >= minLng && item.centerLng! <= maxLng;
+    }).toList();
 
     list.sort((a, b) {
       if (a.distanceMeters == null && b.distanceMeters == null) return 0;
@@ -138,8 +151,11 @@ class ListingQueryService {
     String searchQuery = '',
     ListingFilterModel filter = ListingFilterModel.empty,
   }) async {
-    if (searchQuery.isEmpty && _lastDocument != null) {
+    // Reset pagination only when search parameters or filters actually change
+    if (searchQuery != _lastSearchQuery || filter != _lastFilter) {
       resetPagination();
+      _lastSearchQuery = searchQuery;
+      _lastFilter = filter;
     }
 
     if (!_hasMore) return [];
@@ -156,12 +172,8 @@ class ListingQueryService {
       query = query.where('search_tokens', arrayContainsAny: searchTokens);
     }
 
-    if (filter.minAreaSqM != null) {
-      query = query.where('area_sq_m', isGreaterThanOrEqualTo: filter.minAreaSqM);
-    }
-    if (filter.maxAreaSqM != null) {
-      query = query.where('area_sq_m', isLessThanOrEqualTo: filter.maxAreaSqM);
-    }
+    // minAreaSqM and maxAreaSqM range queries are removed from Firestore query parameters 
+    // to avoid index and sorting order exceptions, and are instead filtered in-memory via _applyFilters.
 
     if (_lastDocument != null) {
       query = query.startAfterDocument(_lastDocument!);

@@ -1,7 +1,6 @@
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/services/auth_service.dart';
 import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
-import 'package:agrozemex/shared/widget/landcardsell.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -25,8 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<ListingCardModel> _listings = [];
   bool _isLoading = false;
   bool _hasMore = true;
-
-  final Map<String, Widget> _miniMapCache = {};
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -299,48 +296,40 @@ class _HomeScreenState extends State<HomeScreen> {
     String listingId,
     List<mapbox.Point> boundaryPoints,
   ) {
-    if (_miniMapCache.containsKey(listingId)) {
-      return _miniMapCache[listingId]!;
-    }
-
-    if (boundaryPoints.length < 3) {
-      return const SizedBox(
-        height: 120,
-        child: Center(child: Text('Boundary not available')),
-      );
-    }
-
-    final widget = SizedBox(
+    return Container(
       height: 95,
-      child: mapbox.MapWidget(
-        key: ValueKey('mini_map_$listingId'),
-        styleUri: mapbox.MapboxStyles.SATELLITE_STREETS,
-        cameraOptions: mapbox.CameraOptions(
-          center: boundaryPoints.first,
-          zoom: 15,
-        ),
-        onMapCreated: (controller) async {
-          final polygonManager =
-              await controller.annotations.createPolygonAnnotationManager();
-
-          final ring = [
-            ...boundaryPoints.map((p) => p.coordinates),
-            boundaryPoints.first.coordinates,
-          ];
-
-          await polygonManager.create(
-            mapbox.PolygonAnnotationOptions(
-              geometry: mapbox.Polygon(coordinates: [ring]),
-              fillColor: 0xFF0D47A1,
-              fillOpacity: 0.35,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.map_rounded,
+            color: Color(0xFF0D47A1),
+            size: 26,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap to view boundary',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: const Color(0xFF0D47A1),
+              fontWeight: FontWeight.w600,
             ),
-          );
-        },
+          ),
+          Text(
+            '${boundaryPoints.length} points marked',
+            style: GoogleFonts.poppins(
+              fontSize: 9,
+              color: Colors.black54,
+            ),
+          ),
+        ],
       ),
     );
-
-    _miniMapCache[listingId] = widget;
-    return widget;
   }
 
   @override

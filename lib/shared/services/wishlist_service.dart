@@ -41,9 +41,10 @@ class WishlistService {
 
   Stream<List<String>> getWishlistIds() {
     final user = _auth.currentUser;
+    if (user == null) return Stream.value([]);
     return _db
         .collection('users')
-        .doc(user!.uid)
+        .doc(user.uid)
         .collection('wishlist')
         .snapshots()
         .map((snap) => snap.docs.map((d) => d.id).toList());

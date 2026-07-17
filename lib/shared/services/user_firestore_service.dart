@@ -118,6 +118,19 @@ class UserFirestoreService {
       village: village,
     );
   print("DEBUG: Attempting to save listing with ${photoPaths.length} photos for user ${user.uid}");
+    double? centerLat;
+    double? centerLng;
+    if (boundaryPoints.isNotEmpty) {
+      double sumLat = 0;
+      double sumLng = 0;
+      for (final p in boundaryPoints) {
+        sumLat += p.coordinates.lat;
+        sumLng += p.coordinates.lng;
+      }
+      centerLat = sumLat / boundaryPoints.length;
+      centerLng = sumLng / boundaryPoints.length;
+    }
+
     await _db.collection('listings').add({
       'title': title,
       'price': price,
@@ -135,6 +148,8 @@ class UserFirestoreService {
           .toList(),
       'search_tokens': searchTokens,
       'is_active': true, 
+      'center_lat': centerLat,
+      'center_lng': centerLng,
     });
     final userDoc = _db.collection('users').doc(user.uid);
     final userSnap = await userDoc.get();

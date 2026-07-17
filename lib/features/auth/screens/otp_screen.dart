@@ -56,9 +56,8 @@ class _OtpScreenState extends State<OtpScreen> {
                       });
                       try {
                         await auth.verifyOtp(widget.verificationId, otp);
-                        if (mounted) {
-                          
-                          Navigator.pop(context);
+                        if (context.mounted) {
+                          Navigator.popUntil(context, (route) => route.isFirst);
                         }
                           
                         

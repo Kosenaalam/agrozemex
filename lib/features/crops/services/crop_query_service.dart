@@ -26,13 +26,6 @@ class CropQueryService {
       query = query.where('crop_type', isEqualTo: cropType);
     }
 
-    if (minPrice != null) {
-      query = query.where('price', isGreaterThanOrEqualTo: minPrice);
-    }
-
-    if (maxPrice != null) {
-      query = query.where('price', isLessThanOrEqualTo: maxPrice);
-    }
     if (village != null && village.isNotEmpty) {
       query = query.where('village', isEqualTo: village); 
     }
@@ -45,7 +38,16 @@ class CropQueryService {
     if (snap.docs.isEmpty) return [];
 
     _lastDoc = snap.docs.last;
-    return snap.docs.map((doc) => CropCardModel.fromFirestore(doc)).toList();
+    var list = snap.docs.map((doc) => CropCardModel.fromFirestore(doc)).toList();
+
+    // In-memory price range filtering to prevent range query sorting crashes on Firestore
+    if (minPrice != null) {
+      list = list.where((item) => item.price >= minPrice).toList();
+    }
+    if (maxPrice != null) {
+      list = list.where((item) => item.price <= maxPrice).toList();
+    }
+    return list;
   }
 
   void resetPagination() {

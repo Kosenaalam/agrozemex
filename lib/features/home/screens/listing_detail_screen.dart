@@ -90,14 +90,14 @@ Future<void> _drawBoundary() async {
   await _polygonManager?.create(
     mapbox.PolygonAnnotationOptions(
       geometry: mapbox.Polygon(coordinates: [ring]),
-      fillColor: const Color(0xFF0D47A1).withValues(alpha:0.28).value,
+      fillColor: const Color(0xFF0D47A1).withValues(alpha:0.28).toARGB32(),
     ),
   );
 
   await _outlineManager?.create(
     mapbox.PolylineAnnotationOptions(
       geometry: mapbox.LineString(coordinates: ring),
-      lineColor: const Color(0xFF0D47A1).value,
+      lineColor: const Color(0xFF0D47A1).toARGB32(),
       lineWidth: 3.5,
     ),
   );

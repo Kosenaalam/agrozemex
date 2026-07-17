@@ -133,14 +133,14 @@ class _MapScreenState extends State<MapScreen> {
     await _polygonManager?.create(
       mapbox.PolygonAnnotationOptions(
         geometry: mapbox.Polygon(coordinates: [closedRing]),
-        fillColor: _primaryBlue.withOpacity(0.28).value,
+        fillColor: _primaryBlue.withValues(alpha: 0.28).toARGB32(),
       ),
     );
 
     await _outlineManager?.create(
       mapbox.PolylineAnnotationOptions(
         geometry: mapbox.LineString(coordinates: closedRing),
-        lineColor: _primaryBlue.value,
+        lineColor: _primaryBlue.toARGB32(),
         lineWidth: 3.5,
       ),
     );

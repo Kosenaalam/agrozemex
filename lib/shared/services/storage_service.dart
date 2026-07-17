@@ -40,40 +40,36 @@ class StorageService {
 //   }
 
 Future<List<String>> uploadListingImages(List<File> images) async {
-  final List<String> downloadUrls = [];
   final String uid = _auth.currentUser!.uid;
   final String listingId = DateTime.now().millisecondsSinceEpoch.toString();
 
-  for (int i = 0; i < images.length; i++) {
-    print("Uploading image $i...");
-
-    final ref = _storage.ref('listings/$uid/$listingId/image_$i.jpg');
-
+  final uploadTasks = List.generate(images.length, (i) async {
     final file = images[i];
 
     if (!await file.exists()) {
       print("FILE DOES NOT EXIST ❌: ${file.path}");
-      continue;
+      return null;
     }
 
     try {
+      print("Uploading image $i in parallel...");
+      final ref = _storage.ref('listings/$uid/$listingId/image_$i.jpg');
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
       );
 
       final uploadTask = await ref.putFile(file, metadata);
-
       final url = await uploadTask.ref.getDownloadURL();
 
-      downloadUrls.add(url);
-
       print("UPLOAD SUCCESS ✅: $url");
+      return url;
     } catch (e) {
       print("STORAGE ERROR ❌: $e");
       throw Exception("Image upload failed");
     }
-  }
+  });
 
-  return downloadUrls;
+  final results = await Future.wait(uploadTasks);
+  return results.whereType<String>().toList();
 }
 }

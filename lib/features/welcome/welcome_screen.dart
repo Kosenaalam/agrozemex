@@ -13,34 +13,54 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../auth/services/auth_service.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
-
-   ListingCardModel mapDocToModel(DocumentSnapshot doc) {
-  final d = doc.data() as Map<String, dynamic>;
-
-  return ListingCardModel(
-    id: doc.id,
-    title: d['title'],
-    price: (d['price'] as num).toDouble(),
-    description: d['description'],
-    areaInSqMeters: (d['area_sq_m'] as num).toDouble(),
-    boundaryPoints: (d['boundary_points'] as List)
-        .map((p) => mapbox.Point(
-              coordinates: mapbox.Position(p['lng'], p['lat']),
-            ))
-        .toList(),
-    photoPaths: List<String>.from(d['photo_paths'] ?? []), searchTokens: [],
-  );
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  late Future<QuerySnapshot> _listingFuture;
+  late Future<QuerySnapshot> _cropFuture;
 
-   CropCardModel mapDocToModels(DocumentSnapshot doc) {
-  final data = doc.data() as Map<String, dynamic>;
+  @override
+  void initState() {
+    super.initState();
+    _listingFuture = FirebaseFirestore.instance
+        .collection('listings')
+        .limit(1)
+        .get();
+    _cropFuture = FirebaseFirestore.instance
+        .collection('crops')
+        .limit(1)
+        .get();
+  }
 
-  return CropCardModel(
-     id: doc.id,
+  ListingCardModel mapDocToModel(DocumentSnapshot doc) {
+    final d = doc.data() as Map<String, dynamic>;
+
+    return ListingCardModel(
+      id: doc.id,
+      title: d['title'],
+      price: (d['price'] as num).toDouble(),
+      description: d['description'],
+      areaInSqMeters: (d['area_sq_m'] as num).toDouble(),
+      boundaryPoints: (d['boundary_points'] as List)
+          .map((p) => mapbox.Point(
+                coordinates: mapbox.Position(p['lng'], p['lat']),
+              ))
+          .toList(),
+      photoPaths: List<String>.from(d['photo_paths'] ?? []),
+      searchTokens: [],
+    );
+  }
+
+  CropCardModel mapDocToModels(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+
+    return CropCardModel(
+      id: doc.id,
       title: data['title'] ?? 'N/A',
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
       description: data['description'] ?? '',
@@ -53,8 +73,8 @@ class WelcomeScreen extends StatelessWidget {
       createdAt: data['created_at'] as Timestamp,
       isActive: data['is_active'] as bool? ?? true,
       searchTokens: List<String>.from(data['search_tokens'] ?? []),
-      );
-}
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,11 +196,8 @@ class WelcomeScreen extends StatelessWidget {
                   children: [
                     Text('Explore Land for sale'),
                       FutureBuilder<QuerySnapshot>(
-                     future: FirebaseFirestore.instance
-                   .collection('listings')
-                   .limit(1)
-                   .get(),
-                 builder: (context, snapshot) {
+                     future: _listingFuture,
+                  builder: (context, snapshot) {
                if (!snapshot.hasData) return const SizedBox();
         
             return Column(
@@ -197,11 +214,8 @@ class WelcomeScreen extends StatelessWidget {
                   children: [
                     Text('Explore Crops for sale'),
                       FutureBuilder<QuerySnapshot>(
-                     future: FirebaseFirestore.instance
-                   .collection('crops')
-                   .limit(1)
-                   .get(),
-                 builder: (context, snapshot) {
+                     future: _cropFuture,
+                  builder: (context, snapshot) {
                if (!snapshot.hasData) return const SizedBox();
         
             return Column(

@@ -355,18 +355,18 @@ actions: [
                   _loadMore();
                 });
               },
-              style: GoogleFonts.poppins(color: Colors.black12),
+              style: GoogleFonts.poppins(color: Colors.black87),
               decoration: InputDecoration(
                 hintText: 'Search crop type / name',
-                hintStyle: GoogleFonts.poppins(color: Colors.black12),
+                hintStyle: GoogleFonts.poppins(color: Colors.black38),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                prefixIcon: const Icon(Icons.search, color: Colors.black12),
+                prefixIcon: const Icon(Icons.search, color: Colors.black38),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.black12),
+                        icon: const Icon(Icons.clear, color: Colors.black54),
                         onPressed: _clearSearch,
                       )
                     : null,

@@ -17,17 +17,23 @@ class ProfileScreenDash extends StatefulWidget {
 }
 
 class _ProfileScreenDashState extends State<ProfileScreenDash> {
+  Future<Map<String, dynamic>>? _profileFuture;
+  String? _cachedUid;
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
     if (auth.user == null) {
       return const Scaffold(body: Center(child: Text('Not logged in')));
-      
+    }
 
+    if (_profileFuture == null || _cachedUid != auth.user!.uid) {
+      _cachedUid = auth.user!.uid;
+      _profileFuture = UserFirestoreService().getUserData(auth.user!.uid);
     }
 
     return FutureBuilder<Map<String, dynamic>>(
-      future: UserFirestoreService().getUserData(auth.user!.uid),
+      future: _profileFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -53,17 +59,23 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                 color: Color(0xffffffff),
                 onPressed: () async {
                   await auth.logout();
-                  Navigator.pushReplacement( 
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  );
+                  if (context.mounted) {
+                    Navigator.pushReplacement( 
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  }
                 },
               ),
             ],
           ),
           body: 
               RefreshIndicator(
-                onRefresh: () async => setState(() {}),
+                onRefresh: () async {
+                  setState(() {
+                    _profileFuture = null;
+                  });
+                },
                 child: ListView(
                   padding: const EdgeInsets.all(16.0),
                   children: [

@@ -70,60 +70,62 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
     });
   }
 
- void _submitListing() async {
-  if (_isSubmitting) return;
-  setState(() => _isSubmitting = true);
+  void _submitListing() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
 
-   if (_formKey.currentState!.validate() && _pickedImages.isNotEmpty) {
     try {
-      final storageService = context.read<StorageService>();
+      if (_formKey.currentState!.validate() && _pickedImages.isNotEmpty) {
+        final storageService = context.read<StorageService>();
 
-      final files = _pickedImages.map((e) => File(e.path)).toList();
-      print("STEP 1: Start submit");
+        final files = _pickedImages.map((e) => File(e.path)).toList();
+        print("STEP 1: Start submit");
 
-      final imageUrls = await storageService.uploadListingImages(files);
-      print("STEP 2: Images uploaded: ${imageUrls.length}");
+        final imageUrls = await storageService.uploadListingImages(files);
+        print("STEP 2: Images uploaded: ${imageUrls.length}");
 
+        if (!mounted) return;
+        final firestoreService = context.read<UserFirestoreService>();
+        print("STEP 3: Saving to Firestore");
 
-      if(!mounted) return;
-      final firestoreService = context.read<UserFirestoreService>();
-      print("STEP 3: Saving to Firestore");
+        await firestoreService.saveLandListing(
+          title: _titleController.text,
+          price: double.parse(_priceController.text.replaceAll(',', '')),
+          description: _descriptionController.text,
+          areaInSqMeters: widget.areaInSqMeters,
+          boundaryPoints: widget.boundaryPoints,
+          photoPaths: imageUrls,
+          village: _villageController.text,
+          soilType: _soilType!,
+          waterSource: _waterSource!,
+          roadAccess: _roadAccess,
+        );
+        print("STEP 4: SAVED SUCCESSFULLY");
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Listing saved successfully'),
+            backgroundColor: _accentGreen,
+          ),
+        );
 
-
-      await firestoreService.saveLandListing(
-        title: _titleController.text,
-        price: double.parse(_priceController.text.replaceAll(',', '')),
-        description: _descriptionController.text,
-        areaInSqMeters: widget.areaInSqMeters,
-        boundaryPoints: widget.boundaryPoints,
-         photoPaths: imageUrls,
-         village: _villageController.text,
-        soilType: _soilType!,
-        waterSource: _waterSource!,
-        roadAccess: _roadAccess,
-      );
-      print("STEP 4: SAVED SUCCESSFULLY");
-    if(!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Listing saved successfully'),
-          backgroundColor: _accentGreen,
-        ),
-      );
-
-      Navigator.popUntil(context, (route) => route.isFirst);
+        Navigator.popUntil(context, (route) => route.isFirst);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please complete all fields and add photos')),
+        );
+        if (mounted) setState(() => _isSubmitting = false);
+      }
     } catch (e) {
-      print("Firebase Error: $e"); // Add this line to see the error in terminal
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving listing: $e')),
-      );
+      print("Firebase Error: $e"); 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving listing: $e')),
+        );
+        setState(() => _isSubmitting = false);
+      }
     }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please complete all fields and add photos')),
-    );
   }
-}
 
 
 

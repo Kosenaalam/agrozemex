@@ -43,8 +43,11 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 20),
             isLoading
                 ? const Center(child: CircularProgressIndicator(),)
-                : ElevatedButton(
-                    onPressed: () async {
+                : SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
                       final phone = phoneCtrl.text.trim();
                       if (!phone.startsWith('+91') || phone.length != 13) { 
                         setState(() {
@@ -59,27 +62,35 @@ class _LoginScreenState extends State<LoginScreen> {
                       try {
                         await auth.sendOtp(
                           phone,
-                          (id) => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => OtpScreen(verificationId: id),
-                            ),
-                          ),
+                          (id) {
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => OtpScreen(verificationId: id),
+                                ),
+                              );
+                            }
+                          },
                         );
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar( 
-                          SnackBar(content: Text('Error sending OTP. Something is wrong')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar( 
+                            const SnackBar(content: Text('Error sending OTP. Something is wrong')),
+                          );
+                        }
                       } finally {
-                        setState(() => isLoading = false);
+                        if (context.mounted) setState(() => isLoading = false);
                       }
                     },
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0D47A1),
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 15),
                     ),
-                    child: const Text('Send OTP', style: TextStyle(fontSize: 10)),
+                    child: const Text('Send OTP', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
+                ),
           ],
         ),
       ),

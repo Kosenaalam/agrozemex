@@ -81,12 +81,12 @@ class _CropSellScreenState extends State<CropSellScreen> {
   void _submitCrop() async {
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
-    if (_formKey.currentState!.validate() && _pickedImages.isNotEmpty && _cropType != null) {
-      try {
+    try {
+      if (_formKey.currentState!.validate() && _pickedImages.isNotEmpty && _cropType != null) {
         final storageService = context.read<StorageService>();
         final files = _pickedImages.map((e) => File(e.path)).toList();
         final imageUrls = await storageService.uploadListingImages(files);
-            if(!mounted) return;
+        if (!mounted) return;
         final firestoreService = context.read<UserFirestoreService>();
         await firestoreService.saveCropListing( 
           title: _titleController.text,
@@ -99,14 +99,18 @@ class _CropSellScreenState extends State<CropSellScreen> {
           village: _villageController.text, 
           location: _location!, 
         );
-          if(!mounted) return;
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Crop listed successfully')));
         Navigator.popUntil(context, (route) => route.isFirst);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Complete all fields and add photos')));
+        if (mounted) setState(() => _isSubmitting = false);
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Complete all fields and add photos')));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 

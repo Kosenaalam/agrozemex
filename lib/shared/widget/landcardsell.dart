@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import '../../features/home/models/listing_card_model.dart';
-import '../../features/home/screens/listing_detail_screen.dart';
-import '../../features/auth/services/auth_service.dart';
-import 'package:provider/provider.dart';
-import '../../features/auth/screens/login_screen.dart';
 
 class LandCard extends StatelessWidget {
   final ListingCardModel item;
