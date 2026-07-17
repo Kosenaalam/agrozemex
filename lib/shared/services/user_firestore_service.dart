@@ -3,24 +3,27 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
-
 class UserFirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   final Map<String, List<String>> _synonyms = {
     'road': ['road', 'highway', 'street', 'pathway', 'lane'],
-    'village': ['village', 'gaon', 'gram', 'pind'], 
-    'tehsil': ['tehsil', 'taluka', 'mandal', 'block'], 
+    'village': ['village', 'gaon', 'gram', 'pind'],
+    'tehsil': ['tehsil', 'taluka', 'mandal', 'block'],
     'farm': ['farm', 'khet', 'land', 'plot', 'acreage'],
     'water': ['water', 'paani', 'irrigation', 'borewell'],
   };
 
   String normalize(String input) {
     String normalized = input.toLowerCase().trim();
-    normalized = normalized.replaceAll(RegExp(r'[^a-z0-9 ]'), ''); 
-    normalized = normalized.replaceAll('st.', 'street').replaceAll('hwy', 'highway');
+    normalized = normalized.replaceAll(RegExp(r'[^a-z0-9 ]'), '');
+    normalized = normalized
+        .replaceAll('st.', 'street')
+        .replaceAll('hwy', 'highway');
     if (normalized.endsWith('pur') || normalized.endsWith('nagar')) {
-      normalized = normalized.replaceAll('pur', 'pur').replaceAll('nagar', 'nagar'); 
+      normalized = normalized
+          .replaceAll('pur', 'pur')
+          .replaceAll('nagar', 'nagar');
     }
     return normalized;
   }
@@ -28,10 +31,10 @@ class UserFirestoreService {
   List<String> expandWithSynonyms(String token) {
     for (final entry in _synonyms.entries) {
       if (entry.value.contains(token)) {
-        return entry.value; 
+        return entry.value;
       }
     }
-    return [token]; 
+    return [token];
   }
 
   List<String> generateNGrams(String term, {int minLength = 3}) {
@@ -51,14 +54,27 @@ class UserFirestoreService {
     if (!snap.exists) {
       await ref.set({
         'uid': user.uid,
-        'phone': user.phoneNumber,
-        'createdAt': Timestamp.now(), 
-        'role': 'buyer', 
+        'email': user.email ?? '',
+        'phone': user.phoneNumber ?? '',
+        'createdAt': Timestamp.now(),
+        'role': 'buyer',
       });
+    } else {
+      final data = snap.data();
+      final updates = <String, dynamic>{};
+      if (user.email != null && (data == null || data['email'] == null || data['email'] == '')) {
+        updates['email'] = user.email;
+      }
+      if (user.phoneNumber != null && (data == null || data['phone'] == null || data['phone'] == '')) {
+        updates['phone'] = user.phoneNumber;
+      }
+      if (updates.isNotEmpty) {
+        await ref.update(updates);
+      }
     }
   }
 
-  Future<Map<String, dynamic>> getUserData(String uid) async { 
+  Future<Map<String, dynamic>> getUserData(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
     return doc.data() ?? {};
   }
@@ -71,10 +87,16 @@ class UserFirestoreService {
     required bool roadAccess,
     required String village,
   }) {
-    final List<String> fields = [title, description, soilType, waterSource, village];
+    final List<String> fields = [
+      title,
+      description,
+      soilType,
+      waterSource,
+      village,
+    ];
     if (roadAccess) fields.add('road access highway');
 
-    final combinedText = fields.where((f) => f.isNotEmpty).join(' '); 
+    final combinedText = fields.where((f) => f.isNotEmpty).join(' ');
 
     final String normalized = normalize(combinedText);
 
@@ -117,7 +139,6 @@ class UserFirestoreService {
       roadAccess: roadAccess,
       village: village,
     );
-  print("DEBUG: Attempting to save listing with ${photoPaths.length} photos for user ${user.uid}");
     double? centerLat;
     double? centerLng;
     if (boundaryPoints.isNotEmpty) {
@@ -147,7 +168,7 @@ class UserFirestoreService {
           .map((p) => {'lat': p.coordinates.lat, 'lng': p.coordinates.lng})
           .toList(),
       'search_tokens': searchTokens,
-      'is_active': true, 
+      'is_active': true,
       'center_lat': centerLat,
       'center_lng': centerLng,
     });
@@ -158,49 +179,47 @@ class UserFirestoreService {
     }
   }
 
-Future<void> saveCropListing({
-  required String title,
-  required double price,
-  required String description,
-  required double quantity,
-  required List<String> photoPaths,
-  required String cropType,
-  required String unit,
-  required String village,
-  required GeoPoint location,
-}) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) throw Exception('User not logged in');
-     
-     final searchTokens = CropSearchService().buildSearchTokens(
-    title: title,
-    description: description,
-    cropType: cropType,
-    village: village,
-  ); 
+  Future<void> saveCropListing({
+    required String title,
+    required double price,
+    required String description,
+    required double quantity,
+    required List<String> photoPaths,
+    required String cropType,
+    required String unit,
+    required String village,
+    required GeoPoint location,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('User not logged in');
 
+    final searchTokens = CropSearchService().buildSearchTokens(
+      title: title,
+      description: description,
+      cropType: cropType,
+      village: village,
+    );
 
-  await _db.collection('crops').add({
+    await _db.collection('crops').add({
+      'title': title,
+      'price': price,
+      'description': description,
+      'quantity': quantity,
+      'photo_paths': photoPaths,
+      'crop_type': cropType,
+      'unit': unit,
+      'village': village,
+      'location': location,
+      'created_by': user.uid,
+      'created_at': FieldValue.serverTimestamp(),
+      'search_tokens': searchTokens,
+      'is_active': true,
+    });
 
-    'title': title,
-    'price': price,
-    'description': description,
-    'quantity': quantity,
-    'photo_paths': photoPaths,
-    'crop_type': cropType,
-    'unit': unit,
-    'village': village,
-    'location': location, 
-    'created_by': user.uid,
-    'created_at': FieldValue.serverTimestamp(),
-    'search_tokens': searchTokens,
-    'is_active': true,
-  });
-
-  final userDoc = _db.collection('users').doc(user.uid);
-  final userSnap = await userDoc.get();
-  if (userSnap.exists && userSnap.data()!['role'] == 'buyer') {
-    await userDoc.update({'role': 'seller'});
+    final userDoc = _db.collection('users').doc(user.uid);
+    final userSnap = await userDoc.get();
+    if (userSnap.exists && userSnap.data()!['role'] == 'buyer') {
+      await userDoc.update({'role': 'seller'});
+    }
   }
-}
 }

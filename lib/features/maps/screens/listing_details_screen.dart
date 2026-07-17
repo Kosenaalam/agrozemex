@@ -8,7 +8,6 @@ import '../../../shared/services/user_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/services/storage_service.dart';
 
-
 class ListingDetailsScreen extends StatefulWidget {
   final List<mapbox.Point> boundaryPoints;
   final double areaInSqMeters;
@@ -36,33 +35,43 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   bool _roadAccess = true;
   bool _isSubmitting = false;
 
-   final List<XFile> _pickedImages = [];
-   final ImagePicker _picker = ImagePicker();
+  final List<XFile> _pickedImages = [];
+  final ImagePicker _picker = ImagePicker();
 
   static const Color _primaryBlue = Color(0xFF0D47A1);
   static const Color _accentGreen = Color(0xFF2E7D32);
 
-  final List<String> _soilTypes = ['Alluvial', 'Black', 'Red', 'Laterite', 'Sandy', 'Clay'];
-  final List<String> _waterSources = ['Tube Well', 'Canal', 'River', 'Rainfed', 'Borewell'];
-    
+  final List<String> _soilTypes = [
+    'Alluvial',
+    'Black',
+    'Red',
+    'Laterite',
+    'Sandy',
+    'Clay',
+  ];
+  final List<String> _waterSources = [
+    'Tube Well',
+    'Canal',
+    'River',
+    'Rainfed',
+    'Borewell',
+  ];
 
+  Future<void> _pickImages() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
 
-    Future<void> _pickImages() async {
-  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-
-  if (image != null) {
-    setState(() {
-      _pickedImages.add(image);
-      if (_pickedImages.length > 10) {
-        _pickedImages.length = 10;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Maximum 10 photos allowed')),
-        );
-      }
-    });
+    if (image != null) {
+      setState(() {
+        _pickedImages.add(image);
+        if (_pickedImages.length > 10) {
+          _pickedImages.length = 10;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Maximum 10 photos allowed')),
+          );
+        }
+      });
+    }
   }
-}
-
 
   void _removeImage(int index) {
     setState(() {
@@ -79,14 +88,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         final storageService = context.read<StorageService>();
 
         final files = _pickedImages.map((e) => File(e.path)).toList();
-        print("STEP 1: Start submit");
 
         final imageUrls = await storageService.uploadListingImages(files);
-        print("STEP 2: Images uploaded: ${imageUrls.length}");
 
         if (!mounted) return;
         final firestoreService = context.read<UserFirestoreService>();
-        print("STEP 3: Saving to Firestore");
 
         await firestoreService.saveLandListing(
           title: _titleController.text,
@@ -100,7 +106,6 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
           waterSource: _waterSource!,
           roadAccess: _roadAccess,
         );
-        print("STEP 4: SAVED SUCCESSFULLY");
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -112,22 +117,21 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         Navigator.popUntil(context, (route) => route.isFirst);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please complete all fields and add photos')),
+          const SnackBar(
+            content: Text('Please complete all fields and add photos'),
+          ),
         );
         if (mounted) setState(() => _isSubmitting = false);
       }
     } catch (e) {
-      print("Firebase Error: $e"); 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving listing: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving listing: $e')));
         setState(() => _isSubmitting = false);
       }
     }
   }
-
-
 
   @override
   void dispose() {
@@ -142,7 +146,13 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Complete Listing', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
+        title: Text(
+          'Complete Listing',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: _primaryBlue,
         foregroundColor: Colors.white,
       ),
@@ -155,17 +165,29 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
             children: [
               Card(
                 elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       Icon(Icons.square_foot, size: 40, color: _primaryBlue),
                       const SizedBox(height: 12),
-                      Text('Land Area', style: GoogleFonts.poppins(fontSize: 18, color: Colors.grey[700])),
+                      Text(
+                        'Land Area',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          color: Colors.grey[700],
+                        ),
+                      ),
                       Text(
                         '${widget.areaInSqMeters.toStringAsFixed(2)} sq m',
-                        style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold, color: _primaryBlue),
+                        style: GoogleFonts.poppins(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: _primaryBlue,
+                        ),
                       ),
                     ],
                   ),
@@ -176,7 +198,13 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               TextFormField(
                 controller: _titleController,
                 maxLength: 12,
-                decoration: InputDecoration(labelText: 'Land Title *', prefixIcon: const Icon(Icons.title), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                decoration: InputDecoration(
+                  labelText: 'Land Title *',
+                  prefixIcon: const Icon(Icons.title),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 validator: (v) => v?.isEmpty == true ? 'Required' : null,
               ),
               const SizedBox(height: 16),
@@ -184,38 +212,64 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Price in ₹ *', prefixIcon: const Icon(Icons.currency_rupee), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                decoration: InputDecoration(
+                  labelText: 'Price in ₹ *',
+                  prefixIcon: const Icon(Icons.currency_rupee),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 validator: (v) => v?.isEmpty == true ? 'Required' : null,
               ),
               const SizedBox(height: 16),
 
               TextFormField(
-                controller: _villageController,  
+                controller: _villageController,
                 maxLength: 15,
                 decoration: InputDecoration(
-                labelText: 'Village Name',
-                prefixIcon: Icon(Icons.location_city),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  labelText: 'Village Name',
+                  prefixIcon: Icon(Icons.location_city),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                validator: (v) => v?.isEmpty == true ? 'Required' : null,
               ),
-               validator: (v) => v?.isEmpty == true ? 'Required' : null,
-            ),
-               const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 5,
-                decoration: InputDecoration(labelText: 'Description', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
 
               // Photo Picker
-              Text('Add Photos * (max 10)', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600)),
+              Text(
+                'Add Photos * (max 10)',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: _pickImages,
                 icon: const Icon(Icons.add_photo_alternate),
-                label: Text('Pick Photos from Gallery', style: GoogleFonts.poppins()),
-                style: ElevatedButton.styleFrom(backgroundColor: _primaryBlue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
+                label: Text(
+                  'Pick Photos from Gallery',
+                  style: GoogleFonts.poppins(),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -224,20 +278,32 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                  ),
                   itemCount: _pickedImages.length,
                   itemBuilder: (context, index) {
                     return Stack(
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.file(File(_pickedImages[index].path), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+                          child: Image.file(
+                            File(_pickedImages[index].path),
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
                         ),
                         Positioned(
                           top: 4,
                           right: 4,
                           child: IconButton(
-                            icon: const Icon(Icons.remove_circle, color: Colors.red),
+                            icon: const Icon(
+                              Icons.remove_circle,
+                              color: Colors.red,
+                            ),
                             onPressed: () => _removeImage(index),
                           ),
                         ),
@@ -249,26 +315,47 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
 
               DropdownButtonFormField<String>(
                 initialValue: _soilType,
-                decoration: InputDecoration(labelText: 'Soil Type', prefixIcon: const Icon(Icons.texture), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                items: _soilTypes.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                decoration: InputDecoration(
+                  labelText: 'Soil Type',
+                  prefixIcon: const Icon(Icons.texture),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                items: _soilTypes
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
                 onChanged: (v) => setState(() => _soilType = v),
               ),
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
                 initialValue: _waterSource,
-                decoration: InputDecoration(labelText: 'Water Source', prefixIcon: const Icon(Icons.water_drop), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                items: _waterSources.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                decoration: InputDecoration(
+                  labelText: 'Water Source',
+                  prefixIcon: const Icon(Icons.water_drop),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                items: _waterSources
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
                 onChanged: (v) => setState(() => _waterSource = v),
               ),
               const SizedBox(height: 16),
 
               SwitchListTile(
-                title: Text('Road Access', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+                title: Text(
+                  'Road Access',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                ),
                 value: _roadAccess,
-               activeThumbColor: _accentGreen,
+                activeThumbColor: _accentGreen,
                 thumbColor: WidgetStateProperty.all(Colors.white),
-                trackColor: WidgetStateProperty.all(_accentGreen.withValues(alpha:0.5)),
+                trackColor: WidgetStateProperty.all(
+                  _accentGreen.withValues(alpha: 0.5),
+                ),
                 onChanged: (v) => setState(() => _roadAccess = v),
               ),
               const SizedBox(height: 32),
@@ -279,9 +366,22 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                   height: 56,
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _submitListing,
-                    style: ElevatedButton.styleFrom(backgroundColor: _accentGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                    child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white)
-                    : Text('Submit Listing', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accentGreen,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: _isSubmitting
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            'Submit Listing',
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),

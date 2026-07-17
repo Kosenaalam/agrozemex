@@ -8,6 +8,7 @@ import '../features/auth/services/auth_service.dart';
 import '../shared/services/user_firestore_service.dart';
 import '../../shared/services/storage_service.dart';
 import '../features/home/services/listing_query_service.dart';
+import '../features/auth/screens/login_screen.dart';
 import 'init.dart';
 import '../shared/services/location_service.dart';
 import '../features/home/services/listing_search_service.dart';
@@ -57,6 +58,24 @@ class RootDecider extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return  const WelcomeScreen();
+    if (auth.user != null) {
+      return const WelcomeScreen();
+    }
+
+    return FutureBuilder<String?>(
+      future: auth.getSavedEmailFromPrefs(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        
+        final savedEmail = snapshot.data;
+        if (savedEmail != null && savedEmail.isNotEmpty) {
+          return LoginScreen(initialEmail: savedEmail);
+        }
+        
+        return const WelcomeScreen();
+      },
+    );
   }
 }

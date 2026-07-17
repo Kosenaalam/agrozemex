@@ -7,15 +7,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:agrozemex/features/maps/screens/map_screen.dart';
 
 class CustomBottomNav extends StatelessWidget {
-   const CustomBottomNav({super.key, required this.currentIndex, required this.currentScreen});
-   final int currentIndex;
+  const CustomBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.currentScreen,
+  });
+  final int currentIndex;
   final String currentScreen;
-     
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:  const Color(0xFF0D47A1),
+        color: Color(0xFF0D47A1),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
@@ -29,74 +33,74 @@ class CustomBottomNav extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-      child:Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          if(currentScreen != 'home')
-           _bottomNavItem(
-             currentIndex: currentIndex,
-            currentScreen: currentScreen,
-                      icon: Icons.landscape_rounded,
-                      label: 'Buy Land',
-                      onTap: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              if (currentScreen != 'home')
+                _bottomNavItem(
+                  currentIndex: currentIndex,
+                  currentScreen: currentScreen,
+                  icon: Icons.landscape_rounded,
+                  label: 'Buy Land',
+                  onTap: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  ),
+                ),
+              if (currentScreen != 'welcome')
+                _bottomNavItem(
+                  currentIndex: currentIndex,
+                  currentScreen: currentScreen,
+                  icon: Icons.person,
+                  label: 'Profile',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileScreenDash(),
                       ),
-                    ),
-                    if(currentScreen != 'welcome')
-          _bottomNavItem(
-            currentIndex: currentIndex,
-            currentScreen: currentScreen,
-            icon: Icons.person,
-            label: 'Profile',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreenDash()),
-              );
-            },
+                    );
+                  },
+                ),
+
+              _bottomNavItem(
+                currentIndex: currentIndex,
+                currentScreen: currentScreen,
+                icon: Icons.sell_rounded,
+                label: 'Sell Land',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MapScreen()),
+                  );
+                },
+              ),
+              _bottomNavItem(
+                currentIndex: currentIndex,
+                currentScreen: currentScreen,
+                icon: Icons.agriculture_rounded,
+                label: 'Sell Crops',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CropSellScreen()),
+                ),
+              ),
+              if (currentScreen != 'crop_home')
+                _bottomNavItem(
+                  currentIndex: currentIndex,
+                  currentScreen: currentScreen,
+                  icon: Icons.shopping_bag_rounded,
+                  label: 'Buy Crops',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CropHomeScreen()),
+                  ),
+                ),
+            ],
           ),
-                    
-          _bottomNavItem(
-            currentIndex: currentIndex,
-            currentScreen: currentScreen,
-            icon: Icons.sell_rounded,
-            label: 'Sell Land',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const MapScreen()),
-              );
-            },
-          ),
-          _bottomNavItem(
-            currentIndex: currentIndex,
-            currentScreen: currentScreen,
-            icon: Icons.agriculture_rounded,
-            label: 'Sell Crops',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const CropSellScreen()),
-            ),
-          ),
-          if(currentScreen != 'crop_home')
-          _bottomNavItem(
-            currentIndex: currentIndex,
-            currentScreen: currentScreen,
-            icon: Icons.shopping_bag_rounded,
-            label: 'Buy Crops',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const CropHomeScreen()),
-            ),
-          ),
-        ],
-      ),
-      ),
+        ),
       ),
     );
   }
@@ -116,7 +120,7 @@ class CustomBottomNav extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color:  Colors.white, size: 20),
+            Icon(icon, color: Colors.white, size: 20),
             const SizedBox(height: 2),
             Text(
               label,

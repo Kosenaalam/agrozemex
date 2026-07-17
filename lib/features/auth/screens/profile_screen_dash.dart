@@ -24,7 +24,7 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
     if (auth.user == null) {
-      return const Scaffold(body: Center(child: Text('Not logged in')));
+      return const LoginScreen();
     }
 
     if (_profileFuture == null || _cachedUid != auth.user!.uid) {
@@ -43,7 +43,8 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
         }
 
         final userData = snapshot.data!;
-        final phone = userData['phone'] ?? 'N/A';
+        final phone = userData['phone'] ?? '';
+        final email = userData['email'] ?? auth.user?.email ?? 'N/A';
         final createdAt = (userData['createdAt'] as Timestamp?)?.toDate().toString() ?? 'N/A';
         final role = userData['role'] ?? 'buyer';
 
@@ -51,12 +52,11 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
           appBar: AppBar(
             title: const Text('My Profile'),
             backgroundColor: const Color(0xFF0D47A1),
-            foregroundColor: Color(0xffffffff),
+            foregroundColor: Colors.white,
             actions: [
               IconButton( 
-              
                 icon: const Icon(Icons.logout),
-                color: Color(0xffffffff),
+                color: Colors.white,
                 onPressed: () async {
                   await auth.logout();
                   if (context.mounted) {
@@ -88,9 +88,15 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ListTile(
+                              leading: const Icon(Icons.email, color: Color(0xFF0D47A1)),
+                              title: Text('Email Address', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+                              subtitle: Text(email),
+                            ),
+                            const Divider(),
+                            ListTile(
                               leading: const Icon(Icons.phone, color: Color(0xFF0D47A1)),
                               title: Text('Phone Number', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                              subtitle: Text(phone),
+                              subtitle: Text(phone.isNotEmpty ? phone : 'Not Linked'),
                             ),
                             const Divider(),
                             ListTile(

@@ -29,13 +29,6 @@
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>
-
-	<key>NSPhotoLibraryUsageDescription</key>
-<string>Agrozemex needs access to your photo library to select land photos.</string>
-<key>NSCameraUsageDescription</key>
-<string>Agrozemex needs camera access to take land photos.</string>
-<key>NSMicrophoneUsageDescription</key>
-<string>Agrozemex needs microphone for video (if added later).</string>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
@@ -47,6 +40,23 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Agrozemex needs access to your photo library to select land photos.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Agrozemex needs camera access to take land photos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Agrozemex needs microphone for video (if added later).</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.783000159900-du9p2ris69hsceubc4t0f9fcf4skne4h</string>
+			</array>
+		</dict>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>

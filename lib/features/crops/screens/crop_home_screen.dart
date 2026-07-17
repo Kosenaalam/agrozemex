@@ -33,36 +33,47 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
   String? _selectedCropType;
   double _minPrice = 0.0;
   double _maxPrice = 10000.0;
-  String _villageFilter = ''; 
+  String _villageFilter = '';
   double _maxDistance = 50.0;
-  Position? _userPosition; 
-  bool _useLocationFilter = false; 
+  Position? _userPosition;
+  bool _useLocationFilter = false;
 
-  final List<String> _cropTypes = ['All', 'Wheat', 'Rice', 'Mustard', 'Pulses', 'Corn', 'Vegetables', 'Fruits', 'others'];
-@override
-void initState() {
-  super.initState();
-  
-  _searchController.addListener(() {
-    setState(() {});
-  });
+  final List<String> _cropTypes = [
+    'All',
+    'Wheat',
+    'Rice',
+    'Mustard',
+    'Pulses',
+    'Corn',
+    'Vegetables',
+    'Fruits',
+    'others',
+  ];
+  @override
+  void initState() {
+    super.initState();
 
-  // Safe way to call after build
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    _getUserLocation();
-    final service = context.read<CropQueryService>();
-    service.resetPagination();
-    _loadMore();
-  });
+    _searchController.addListener(() {
+      setState(() {});
+    });
 
-  _scrollController.addListener(() {
-    if (_scrollController.position.pixels >= 
-        _scrollController.position.maxScrollExtent - 200 &&
-        !_isLoading && _hasMore) {
+    // Safe way to call after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _getUserLocation();
+      final service = context.read<CropQueryService>();
+      service.resetPagination();
       _loadMore();
-    }
-  });
-}
+    });
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoading &&
+          _hasMore) {
+        _loadMore();
+      }
+    });
+  }
 
   Future<void> _getUserLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -76,8 +87,10 @@ void initState() {
 
     if (permission == LocationPermission.deniedForever) return;
 
-    _userPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    if (_useLocationFilter) _applyFilters(); 
+    _userPosition = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    if (_useLocationFilter) _applyFilters();
   }
 
   double _calculateDistance(GeoPoint cropLocation) {
@@ -88,17 +101,21 @@ void initState() {
     final double lat2 = cropLocation.latitude;
     final double lon2 = cropLocation.longitude;
 
-    const R = 6371; 
+    const R = 6371;
     final dLat = radians(lat2 - lat1);
     final dLon = radians(lon2 - lon1);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-              math.cos(radians(lat1)) * math.cos(radians(lat2)) *
-              math.sin(dLon / 2) * math.sin(dLon / 2);
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(radians(lat1)) *
+            math.cos(radians(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return R * c;
   }
+
   //  distance helper
-       double radians(double degrees) => degrees * (math.pi / 180);
+  double radians(double degrees) => degrees * (math.pi / 180);
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
@@ -112,7 +129,7 @@ void initState() {
         cropType: _selectedCropType != 'All' ? _selectedCropType : null,
         minPrice: _minPrice,
         maxPrice: _maxPrice,
-        village: _villageFilter.isNotEmpty ? _villageFilter : null, 
+        village: _villageFilter.isNotEmpty ? _villageFilter : null,
       );
 
       if (!mounted) return;
@@ -122,7 +139,9 @@ void initState() {
           _hasMore = false;
         } else {
           final existingIds = _listings.map((e) => e.id).toSet();
-          final uniqueNew = newListings.where((e) => !existingIds.contains(e.id)).toList();
+          final uniqueNew = newListings
+              .where((e) => !existingIds.contains(e.id))
+              .toList();
           _listings.addAll(uniqueNew);
         }
       });
@@ -163,151 +182,163 @@ void initState() {
     });
     _loadMore();
   }
- void _showFilterBottomSheet(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,     
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) {
-      return Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.75,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (context, scrollController) {
-            return SingleChildScrollView(
-              controller: scrollController,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Filters',
-                          style: GoogleFonts.poppins(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.75,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (context, scrollController) {
+              return SingleChildScrollView(
+                controller: scrollController,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Filters',
+                            style: GoogleFonts.poppins(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _selectedCropType = null;
+                                _villageFilter = '';
+                                _useLocationFilter = false;
+                                _maxDistance = 50;
+                                _minPrice = 0;
+                                _maxPrice = 10000;
+                              });
+                              Navigator.pop(context);
+                              _applyFilters();
+                            },
+                            child: const Text('Reset'),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 30),
+
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedCropType,
+                        hint: const Text('Select Crop Type'),
+                        isExpanded: true,
+                        items: _cropTypes
+                            .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            )
+                            .toList(),
+                        onChanged: (v) => setState(() => _selectedCropType = v),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      TextField(
+                        onChanged: (v) =>
+                            setState(() => _villageFilter = v.trim()),
+                        decoration: const InputDecoration(
+                          labelText: 'Village / Location',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      SwitchListTile(
+                        title: Text(
+                          'Near Me (max ${_maxDistance.round()} km)',
+                          style: GoogleFonts.poppins(),
+                        ),
+                        value: _useLocationFilter,
+                        onChanged: (v) async {
+                          setState(() => _useLocationFilter = v);
+                          if (v && _userPosition == null) {
+                            await _getUserLocation();
+                          }
+                        },
+                      ),
+
+                      if (_useLocationFilter)
+                        Slider(
+                          min: 0.0,
+                          max: 100.0,
+                          value: _maxDistance,
+                          label: '${_maxDistance.round()} km',
+                          onChanged: (v) => setState(() => _maxDistance = v),
+                          onChangeEnd: (v) => _applyFilters(),
+                        ),
+
+                      const SizedBox(height: 20),
+
+                      Text(
+                        'Price Range (₹)',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      RangeSlider(
+                        min: 0.0,
+                        max: 10000.0,
+                        divisions: 100,
+                        values: RangeValues(_minPrice, _maxPrice),
+                        labels: RangeLabels(
+                          '₹${_minPrice.round()}',
+                          '₹${_maxPrice.round()}',
+                        ),
+                        onChanged: (values) {
+                          setState(() {
+                            _minPrice = values.start;
+                            _maxPrice = values.end;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            _applyFilters();
+                            Navigator.pop(context);
+                          },
+                          child: const Text(
+                            'Apply Filters',
+                            style: TextStyle(fontSize: 16),
                           ),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _selectedCropType = null;
-                              _villageFilter = '';
-                              _useLocationFilter = false;
-                              _maxDistance = 50;
-                              _minPrice = 0;
-                              _maxPrice = 10000;
-                            });
-                            Navigator.pop(context);
-                            _applyFilters();
-                          },
-                          child: const Text('Reset'),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 30),
-
-                    DropdownButtonFormField<String>(
-                      value: _selectedCropType,
-                      hint: const Text('Select Crop Type'),
-                      isExpanded: true,
-                      items: _cropTypes.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (v) => setState(() => _selectedCropType = v),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    TextField(
-                      onChanged: (v) => setState(() => _villageFilter = v.trim()),
-                      decoration: const InputDecoration(
-                        labelText: 'Village / Location',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.location_on),
                       ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    SwitchListTile(
-                      title: Text(
-                        'Near Me (max ${_maxDistance.round()} km)',
-                        style: GoogleFonts.poppins(),
-                      ),
-                      value: _useLocationFilter,
-                      onChanged: (v) async {
-                        setState(() => _useLocationFilter = v);
-                        if (v && _userPosition == null) {
-                          await _getUserLocation();
-                        }
-                      },
-                    ),
-
-                    if (_useLocationFilter)
-                      Slider(
-                        min: 0.0,
-                        max: 100.0,
-                        value: _maxDistance,
-                        label: '${_maxDistance.round()} km',
-                        onChanged: (v) => setState(() => _maxDistance = v),
-                        onChangeEnd: (v) => _applyFilters(),
-                      ),
-
-                    const SizedBox(height: 20),
-
-                    Text(
-                      'Price Range (₹)',
-                      style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    RangeSlider(
-                      min: 0.0,
-                      max: 10000.0,
-                      divisions: 100,
-                      values: RangeValues(_minPrice, _maxPrice),
-                      labels: RangeLabels(
-                        '₹${_minPrice.round()}',
-                        '₹${_maxPrice.round()}',
-                      ),
-                      onChanged: (values) {
-                        setState(() {
-                          _minPrice = values.start;
-                          _maxPrice = values.end;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _applyFilters();
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Apply Filters', style: TextStyle(fontSize: 16)),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
-      );
-    },
-  );
-}
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -315,78 +346,85 @@ void initState() {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
-        title: Text('Crop Listings', style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w600)),
+        title: Text(
+          'Crop Listings',
+          style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
         elevation: 4,
-actions: [
-  ElevatedButton.icon(
-    icon: const Icon(Icons.filter_list_rounded, size: 28),
-    label: Text('Filter'),
-    onPressed: () => _showFilterBottomSheet(context),
-  ),
-],
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.filter_list_rounded, size: 28),
+            label: Text('Filter'),
+            onPressed: () => _showFilterBottomSheet(context),
+          ),
+        ],
       ),
       body: Column(
-            children: [
+        children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha:0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                final query = value.toLowerCase().trim();
-                _debounce?.cancel();
-                _debounce = Timer(const Duration(milliseconds: 300), () {
-                  final service = context.read<CropQueryService>();
-                  service.resetPagination();
-                  setState(() {
-                    _searchQuery = query;
-                    _listings.clear();
-                    _hasMore = true;
-                    _isLoading = false;
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  final query = value.toLowerCase().trim();
+                  _debounce?.cancel();
+                  _debounce = Timer(const Duration(milliseconds: 300), () {
+                    final service = context.read<CropQueryService>();
+                    service.resetPagination();
+                    setState(() {
+                      _searchQuery = query;
+                      _listings.clear();
+                      _hasMore = true;
+                      _isLoading = false;
+                    });
+                    _loadMore();
                   });
-                  _loadMore();
-                });
-              },
-              style: GoogleFonts.poppins(color: Colors.black87),
-              decoration: InputDecoration(
-                hintText: 'Search crop type / name',
-                hintStyle: GoogleFonts.poppins(color: Colors.black38),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                },
+                style: GoogleFonts.poppins(color: Colors.black87),
+                decoration: InputDecoration(
+                  hintText: 'Search crop type / name',
+                  hintStyle: GoogleFonts.poppins(color: Colors.black38),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  prefixIcon: const Icon(Icons.search, color: Colors.black38),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.black54),
+                          onPressed: _clearSearch,
+                        )
+                      : null,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                prefixIcon: const Icon(Icons.search, color: Colors.black38),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.black54),
-                        onPressed: _clearSearch,
-                      )
-                    : null,
               ),
             ),
-                    ),
           ),
-     
+
           Expanded(
             child: _listings.isEmpty && !_isLoading
                 ? const Center(child: Text('No crops found'))
                 : GridView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                     itemCount: _listings.length + (_isLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == _listings.length) {
@@ -406,13 +444,17 @@ actions: [
           );
         },
         backgroundColor: const Color(0xFF0D47A1),
-        child: const Icon(Icons.add_photo_alternate, color: Colors.white, size: 30),
+        child: const Icon(
+          Icons.add_photo_alternate,
+          color: Colors.white,
+          size: 30,
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: CustomBottomNav(
         currentIndex: 2,
         currentScreen: 'crop_home',
-     //  ),
+        //  ),
       ),
     );
   }
@@ -426,24 +468,20 @@ actions: [
       onTap: () {
         final auth = context.read<AuthService>();
 
-        if (auth.user != null){
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CropDetailScreen(item: item),
-          ),
-        );
-      
-      }else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('please login first')),
-          );
+        if (auth.user != null) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (contxt) => const LoginScreen ()),
+            MaterialPageRoute(builder: (_) => CropDetailScreen(item: item)),
           );
-      }
-
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('please login first')));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (contxt) => const LoginScreen()),
+          );
+        }
       },
       child: Card(
         elevation: 4,
@@ -463,7 +501,9 @@ actions: [
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
-                          return const Center(child: CircularProgressIndicator());
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         },
                         errorBuilder: (context, error, stackTrace) {
                           return const Center(child: Icon(Icons.error));
@@ -500,10 +540,10 @@ actions: [
               //   style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[700]),
               // ),
               // Text(
-              //   'Location: ${item.village}', 
+              //   'Location: ${item.village}',
               //   style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
               // ),
-              if (distance != null) 
+              if (distance != null)
                 Text(
                   '${distance.toStringAsFixed(1)} km away',
                   style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
