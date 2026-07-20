@@ -63,15 +63,15 @@ class RootDecider extends StatelessWidget {
     }
 
     return FutureBuilder<String?>(
-      future: auth.getSavedEmailFromPrefs(),
+      future: auth.getSavedPhoneFromPrefs(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         
-        final savedEmail = snapshot.data;
-        if (savedEmail != null && savedEmail.isNotEmpty) {
-          return LoginScreen(initialEmail: savedEmail);
+        final savedPhone = snapshot.data;
+        if (savedPhone != null && savedPhone.isNotEmpty) {
+          return LoginScreen(initialPhone: savedPhone);
         }
         
         return const WelcomeScreen();

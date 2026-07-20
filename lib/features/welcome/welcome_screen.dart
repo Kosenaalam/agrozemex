@@ -1,4 +1,5 @@
 import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/crops/models/crop_card_model.dart';
 import 'package:agrozemex/features/home/models/listing_card_model.dart';
 import 'package:agrozemex/shared/widget/cropcardsell.dart';
@@ -112,9 +113,66 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
             child: Column(
               children: [
-                Consumer<AuthService>(
+                 Consumer<AuthService>(
                   builder: (context, auth, child) {
-                    if (auth.user == null) return const SizedBox.shrink();
+                    if (auth.user == null) {
+                      return Card(
+                        margin: const EdgeInsets.only(top: 10.0, bottom: 10.0),
+                        color: Colors.blue[50],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.blue[100]!),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.info_outline, color: Color(0xFF0D47A1)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Unlock Full Features',
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF0D47A1),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Sign in to list your lands and sell crops.',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const LoginScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  'Sign In',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF0D47A1),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
                     return FutureBuilder<Map<String, dynamic>>(
                       future: UserFirestoreService().getUserData(auth.user!.uid),
                       builder: (context, snapshot) {

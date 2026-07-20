@@ -125,6 +125,44 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                   ),
                 ),
               ),
+              if (widget.isLogin) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () async {
+                      setState(() {
+                        _isLoading = true;
+                        _errorMessage = null;
+                      });
+                      try {
+                        await auth.sendPasswordResetOtp(widget.email);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Password reset link sent to ${widget.email}. Please check your inbox.',
+                              ),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setState(() => _errorMessage = e.toString());
+                      } finally {
+                        if (mounted) setState(() => _isLoading = false);
+                      }
+                    },
+                    child: Text(
+                      'Forgot Password? / Login with OTP',
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF0D47A1),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               if (!widget.isLogin) ...[
                 const SizedBox(height: 20),
                 TextField(
@@ -208,9 +246,10 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                                 pass,
                               );
                             } else {
-                              await auth.createUserWithEmailAndPassword(
+                              await auth.completeSignupWithPassword(
                                 widget.email,
                                 pass,
+                                'email-otp-verification-completed',
                               );
                             }
                             if (context.mounted) {
@@ -222,10 +261,14 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                           } catch (e) {
                             if (mounted) {
                               setState(() {
-                                _errorMessage = e.toString().replaceFirst(
-                                  'Exception: ',
-                                  '',
-                                );
+                                if (e == 'user-exists') {
+                                  _errorMessage = 'An account already exists with this email address. Please login instead.';
+                                } else {
+                                  _errorMessage = e.toString().replaceFirst(
+                                    'Exception: ',
+                                    '',
+                                  );
+                                }
                               });
                             }
                           } finally {

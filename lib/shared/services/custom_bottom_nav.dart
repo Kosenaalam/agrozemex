@@ -5,6 +5,9 @@ import 'package:agrozemex/features/home/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:agrozemex/features/maps/screens/map_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:agrozemex/features/auth/services/auth_service.dart';
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
 
 class CustomBottomNav extends StatelessWidget {
   const CustomBottomNav({
@@ -71,10 +74,21 @@ class CustomBottomNav extends StatelessWidget {
                 icon: Icons.sell_rounded,
                 label: 'Sell Land',
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MapScreen()),
-                  );
+                  final auth = Provider.of<AuthService>(context, listen: false);
+                  if (auth.user == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please log in to sell land.')),
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MapScreen()),
+                    );
+                  }
                 },
               ),
               _bottomNavItem(
@@ -82,10 +96,23 @@ class CustomBottomNav extends StatelessWidget {
                 currentScreen: currentScreen,
                 icon: Icons.agriculture_rounded,
                 label: 'Sell Crops',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CropSellScreen()),
-                ),
+                onTap: () {
+                  final auth = Provider.of<AuthService>(context, listen: false);
+                  if (auth.user == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please log in to sell crops.')),
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CropSellScreen()),
+                    );
+                  }
+                },
               ),
               if (currentScreen != 'crop_home')
                 _bottomNavItem(
