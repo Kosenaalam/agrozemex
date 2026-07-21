@@ -8,8 +8,12 @@ import 'core/init.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Disable dynamic runtime font downloading to prevent HTTP locks during text paint
+  // Allow runtime fetching as fallback; bundled fonts in assets/fonts/ take primary precedence offline
+  GoogleFonts.config.allowRuntimeFetching = true;
+  /*
+  // Previous code:
   GoogleFonts.config.allowRuntimeFetching = false;
+  */
 
   // Initialize Firebase [DEFAULT] app BEFORE mounting AppRoot so FirebaseAuth.instance never fails
   try {
