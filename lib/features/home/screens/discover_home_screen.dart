@@ -5,7 +5,6 @@ import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
 import 'package:agrozemex/features/home/screens/home_screen.dart';
 import 'package:agrozemex/features/maps/screens/map_screen.dart';
-import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
 
 /// AgroZemex Discover / Home Landing Screen built strictly from HTML Snippet 1.
 class DiscoverHomeScreen extends StatefulWidget {
@@ -472,10 +471,6 @@ class _DiscoverHomeScreenState extends State<DiscoverHomeScreen> {
             const SizedBox(height: 48),
           ],
         ),
-      ),
-      bottomNavigationBar: const CustomBottomNav(
-        currentIndex: 0,
-        currentScreen: 'welcome',
       ),
     );
   }

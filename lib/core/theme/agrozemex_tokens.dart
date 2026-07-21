@@ -65,6 +65,14 @@ abstract class AgroZemexTokens {
         color: onSurface,
       );
 
+  /// Body Medium: 14px / Leading 1.4
+  static TextStyle get bodyMedium => GoogleFonts.inter(
+        fontSize: 14.0,
+        height: 1.4,
+        fontWeight: FontWeight.normal,
+        color: onSurface,
+      );
+
   /// Label Caps: 10px / Tracking 0.05em / Uppercase
   /// For categories and utility labels (e.g., "ARABLE").
   static TextStyle get labelCaps => GoogleFonts.inter(

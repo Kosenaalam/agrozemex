@@ -7,7 +7,7 @@ import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
 import 'package:agrozemex/features/auth/services/auth_service.dart';
-import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
+import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 import '../../maps/screens/map_screen.dart';
 import '../models/listing_card_model.dart';
 import '../services/listing_query_service.dart';
@@ -44,10 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _loadMore();
       }
     });
-
-    _searchController.addListener(() {
-      setState(() {});
-    });
+    // PERF FIX: Removed setState() from addListener. Clear button is now driven
+    // by ValueListenableBuilder to avoid full 825-line widget rebuild on every keystroke.
   }
 
   Future<void> _loadMore() async {
@@ -143,13 +141,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AgroZemexTokens.surface,
+      // PERF FIX: Replaced BackdropFilter (GPU-blocking ImageFilter.blur sigma=20 on every
+      // frame) with a plain semi-transparent Container. BackdropFilter was the #1 cause of
+      // scroll-related ANR on mid-range devices. Visual is preserved via border + shadow.
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(64),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: AgroZemexTokens.glassBlurFilter,
+        child: RepaintBoundary(
+          child: Container(
+            decoration: BoxDecoration(
+              color: AgroZemexTokens.surface.withValues(alpha: 0.97),
+              border: Border(
+                bottom: BorderSide(
+                  color: AgroZemexTokens.onSurfaceVariant.withValues(alpha: 0.08),
+                ),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color.fromRGBO(0, 0, 0, 0.04),
+                  blurRadius: 12,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
             child: AppBar(
-              backgroundColor: AgroZemexTokens.surface.withValues(alpha: 0.8),
+              backgroundColor: Colors.transparent,
               elevation: 0,
               leading: IconButton(
                 icon: const Icon(Icons.menu, color: AgroZemexTokens.primary),
@@ -257,11 +272,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                    if (_searchController.text.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: _clearSearch,
-                      ),
+                    // PERF FIX: ValueListenableBuilder only rebuilds the clear
+                    // button widget, not the entire 825-line HomeScreen
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _searchController,
+                      builder: (context, value, child) {
+                        return value.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: _clearSearch,
+                              )
+                            : const SizedBox.shrink();
+                      },
+                    ),
                     Container(
                       width: 1,
                       height: 24,
@@ -363,19 +386,20 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const MapScreen()),
-          );
+          final shell = MainNavigationShell.of(context);
+          if (shell != null) {
+            shell.switchTab(2);
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MapScreen()),
+            );
+          }
         },
         backgroundColor: AgroZemexTokens.primary,
         child: const Icon(Icons.map, color: Colors.white, size: 26),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: const CustomBottomNav(
-        currentIndex: 1,
-        currentScreen: 'home',
-      ),
     );
   }
 

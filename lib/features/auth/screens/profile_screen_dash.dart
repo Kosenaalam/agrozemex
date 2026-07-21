@@ -6,7 +6,6 @@ import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart'; 
 import 'package:agrozemex/features/auth/screens/seller_dashboard.dart';
 import 'package:agrozemex/features/wishlist/screens/wishlist_screen.dart';
-import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
 import '../services/auth_service.dart';
 
@@ -30,7 +29,10 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
 
     if (_profileFuture == null || _cachedUid != auth.user!.uid) {
       _cachedUid = auth.user!.uid;
-      _profileFuture = UserFirestoreService().getUserData(auth.user!.uid);
+      // PERF FIX: Use the Provider-registered singleton instead of creating a new
+      // UserFirestoreService() instance on every rebuild. New instances create
+      // separate Firestore connection state that is never properly disposed.
+      _profileFuture = context.read<UserFirestoreService>().getUserData(auth.user!.uid);
     }
 
     return FutureBuilder<Map<String, dynamic>>(
@@ -404,10 +406,6 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                 ),
               ),
             ),
-          ),
-          bottomNavigationBar: const CustomBottomNav(
-            currentIndex: 3,
-            currentScreen: 'profile',
           ),
         );
       },

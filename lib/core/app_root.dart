@@ -1,3 +1,102 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../features/auth/screens/login_screen.dart';
+import '../features/auth/services/auth_service.dart';
+import '../features/crops/services/crop_query_service.dart';
+import '../features/crops/services/crop_search_service.dart';
+import '../features/home/services/listing_query_service.dart';
+import '../features/home/services/listing_search_service.dart';
+import '../features/navigation/main_navigation_shell.dart';
+import '../shared/services/location_service.dart';
+import '../shared/services/user_firestore_service.dart';
+import '../../shared/services/storage_service.dart';
+import 'init.dart';
+import 'theme/theme.dart';
+
+class AppRoot extends StatelessWidget {
+  const AppRoot({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        Provider(create: (_) => UserFirestoreService()),
+        Provider(create: (_) => ListingQueryService()),
+        Provider(create: (_) => ListingSearchService()),
+        Provider(create: (_) => StorageService()),
+        Provider(create: (_) => CropQueryService()),
+        Provider(create: (_) => CropSearchService()),
+        Provider<LocationService>(create: (_) => AppInit.locationService),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'AgroZemex',
+        theme: AgroZemexTheme.lightTheme,
+        home: const RootDecider(),
+      ),
+    );
+  }
+}
+
+class RootDecider extends StatefulWidget {
+  const RootDecider({super.key});
+
+  @override
+  State<RootDecider> createState() => _RootDeciderState();
+}
+
+class _RootDeciderState extends State<RootDecider> {
+  late Future<String?> _savedPhoneFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final auth = context.read<AuthService>();
+    _savedPhoneFuture = auth.getSavedPhoneFromPrefs().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () => null,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = context.select<AuthService, bool>((s) => s.isLoading);
+    final user = context.select<AuthService, dynamic>((s) => s.user);
+
+    if (isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (user != null) {
+      return const MainNavigationShell();
+    }
+
+    return FutureBuilder<String?>(
+      future: _savedPhoneFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final savedPhone = snapshot.data;
+        if (savedPhone != null && savedPhone.isNotEmpty) {
+          return LoginScreen(initialPhone: savedPhone);
+        }
+
+        return const MainNavigationShell();
+      },
+    );
+  }
+}
+
+/*
+================================================================================
+PREVIOUS APP ROOT CODE (PRESERVED IN COMMENTED FORM AS REQUESTED)
+================================================================================
 import 'package:agrozemex/features/crops/services/crop_query_service.dart';
 import 'package:agrozemex/features/crops/services/crop_search_service.dart';
 import 'package:agrozemex/features/welcome/welcome_screen.dart';
@@ -54,18 +153,22 @@ class _RootDeciderState extends State<RootDecider> {
   void initState() {
     super.initState();
     final auth = context.read<AuthService>();
-    _savedPhoneFuture = auth.getSavedPhoneFromPrefs();
+    _savedPhoneFuture = auth.getSavedPhoneFromPrefs().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () => null,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthService>();
+    final isLoading = context.select<AuthService, bool>((s) => s.isLoading);
+    final user = context.select<AuthService, dynamic>((s) => s.user);
 
-    if (auth.isLoading) {
+    if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (auth.user != null) {
+    if (user != null) {
       return const WelcomeScreen();
     }
 
@@ -88,3 +191,5 @@ class _RootDeciderState extends State<RootDecider> {
     );
   }
 }
+================================================================================
+*/

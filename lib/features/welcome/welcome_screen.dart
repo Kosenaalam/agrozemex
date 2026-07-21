@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/services/auth_service.dart';
-import 'package:agrozemex/features/home/screens/discover_home_screen.dart';
+import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 
 /// AgroZemex Splash Screen built strictly from HTML/Tailwind specifications.
 class WelcomeScreen extends StatefulWidget {
@@ -123,7 +123,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     final auth = context.read<AuthService>();
 
     final Widget targetScreen =
-        auth.user != null ? const DiscoverHomeScreen() : const LoginScreen();
+        auth.user != null ? const MainNavigationShell() : const LoginScreen();
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -693,11 +693,7 @@ class _OldWelcomeScreenState extends State<WelcomeScreen> {
           ),
         ),
       ),
-       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-       bottomNavigationBar: const CustomBottomNav(
-        currentIndex: 0, 
-        currentScreen: 'welcome',
-       ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

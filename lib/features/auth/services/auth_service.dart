@@ -24,7 +24,14 @@ class AuthService extends ChangeNotifier {
   static const String _savedEmailKey = 'savedEmail';
 
   AuthService() {
-    _initializeGoogleSignIn();
+    // PERF FIX: Deferred Google sign-in init to post-frame so it NEVER blocks
+    // the authStateChanges() listener which determines isLoading state.
+    // Previously, the constructor called async _initializeGoogleSignIn() inline which
+    // created a race: if Google server took >100ms, isLoading stayed `true` past the
+    // auth stream's first event, causing an indefinite splash screen hang.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeGoogleSignIn();
+    });
     _authSubscription = _auth.authStateChanges().listen((u) {
       user = u;
       isLoading = false;

@@ -211,59 +211,65 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AgroZemexTokens.surface,
       body: Stack(
         children: [
-          // Cinematic Background for Phone Login Screen
+          // PERF FIX: Wrapped in RepaintBoundary so that form field rebuilds,
+          // error message changes, OTP transitions do NOT repaint this expensive
+          // network image. Previously it was re-decoded on every setState() call.
           if (!_isOtpSent)
             Positioned(
               top: 0,
               left: 0,
               right: 0,
               height: isDesktop ? screenSize.height : screenSize.height * 0.55,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.network(
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuBQ0p0Ca_AuLumAKJzjD-UpF0c07OFWNM53oY7CpjS-Zs1OZJ9mhI0QYmsoo9ZlUEItoiH09pPJBvZYHjXaNTwPsz4ameVW1ltuFPW2veA8Ne8giaMukIQXG7Ds7BXsrBhHX3MrhBE9huq6_bHkbM0uoXJYbtW5i8swDvTBy1xcflAApP5r7xws2ieAMv9uOTaQfWJFrNGTtTFH7HTA8YbtghFZFDRXznhpceJShq1hxpKcfS5ugDjtvQ',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        Container(color: AgroZemexTokens.primary),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          AgroZemexTokens.primary.withValues(alpha: 0.4),
-                        ],
-                      ),
+              child: RepaintBoundary(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      'https://lh3.googleusercontent.com/aida-public/AB6AXuBQ0p0Ca_AuLumAKJzjD-UpF0c07OFWNM53oY7CpjS-Zs1OZJ9mhI0QYmsoo9ZlUEItoiH09pPJBvZYHjXaNTwPsz4ameVW1ltuFPW2veA8Ne8giaMukIQXG7Ds7BXsrBhHX3MrhBE9huq6_bHkbM0uoXJYbtW5i8swDvTBy1xcflAApP5r7xws2ieAMv9uOTaQfWJFrNGTtTFH7HTA8YbtghFZFDRXznhpceJShq1hxpKcfS5ugDjtvQ',
+                      fit: BoxFit.cover,
+                      // Cache at display size to prevent full-resolution decode
+                      cacheWidth: (screenSize.width * 2).toInt(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(color: AgroZemexTokens.primary),
                     ),
-                  ),
-                  // Mobile Top Branding Overlay
-                  Positioned(
-                    top: 48,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Text(
-                        'AgroZemex',
-                        style: GoogleFonts.inter(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          letterSpacing: -1.0,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black26,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            AgroZemexTokens.primary.withValues(alpha: 0.4),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    // Mobile Top Branding Overlay
+                    Positioned(
+                      top: 48,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Text(
+                          'AgroZemex',
+                          style: GoogleFonts.inter(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: -1.0,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.black26,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
