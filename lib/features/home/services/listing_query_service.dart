@@ -191,18 +191,20 @@ class ListingQueryService {
 
     list = _applyFilters(list, filter);
 
-    list.sort((a, b) {
-      final scoreA = _searchRankService.calculateScore(item: a, query: searchQuery);
-      final scoreB = _searchRankService.calculateScore(item: b, query: searchQuery);
-      return scoreB.compareTo(scoreA);
-    });
-
-    list.sort((a, b) {
-      if (a.distanceMeters == null && b.distanceMeters == null) return 0;
-      if (a.distanceMeters == null) return 1;
-      if (b.distanceMeters == null) return -1;
-      return a.distanceMeters!.compareTo(b.distanceMeters!);
-    });
+    if (searchQuery.isNotEmpty) {
+      list.sort((a, b) {
+        final scoreA = _searchRankService.calculateScore(item: a, query: searchQuery);
+        final scoreB = _searchRankService.calculateScore(item: b, query: searchQuery);
+        return scoreB.compareTo(scoreA);
+      });
+    } else {
+      list.sort((a, b) {
+        if (a.distanceMeters == null && b.distanceMeters == null) return 0;
+        if (a.distanceMeters == null) return 1;
+        if (b.distanceMeters == null) return -1;
+        return a.distanceMeters!.compareTo(b.distanceMeters!);
+      });
+    }
 
     return list;
   }

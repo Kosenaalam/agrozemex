@@ -40,7 +40,9 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _initializeGoogleSignIn() async {
     try {
-      await _googleSignIn.signInSilently();
+      await _googleSignIn
+          .signInSilently()
+          .timeout(const Duration(seconds: 3));
     } catch (e) {
       debugPrint("Failed to silently sign in GoogleSignIn: $e");
     }

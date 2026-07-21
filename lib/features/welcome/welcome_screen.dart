@@ -1,3 +1,412 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
+import 'package:agrozemex/features/auth/services/auth_service.dart';
+import 'package:agrozemex/features/home/screens/discover_home_screen.dart';
+
+/// AgroZemex Splash Screen built strictly from HTML/Tailwind specifications.
+class WelcomeScreen extends StatefulWidget {
+  const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  late Animation<double> _bgScaleAnimation;
+  late Animation<double> _logoOpacity;
+  late Animation<Offset> _logoSlide;
+  late Animation<double> _titleOpacity;
+  late Animation<Offset> _titleSlide;
+  late Animation<double> _taglineOpacity;
+  late Animation<Offset> _taglineSlide;
+  late Animation<double> _dividerOpacity;
+  late Animation<double> _footerOpacity;
+
+  bool _hasNavigated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    );
+
+    // Subtle scale animation for full bleed background (1.1 -> 1.0)
+    _bgScaleAnimation = Tween<double>(begin: 1.1, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    // Logo section animation (delay: 300ms -> interval 0.1 to 0.45)
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.1, 0.45, curve: Curves.easeOut),
+      ),
+    );
+    _logoSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.1, 0.45, curve: Curves.easeOutCubic),
+          ),
+        );
+
+    // Brand title animation (delay: 500ms -> interval 0.166 to 0.55)
+    _titleOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.166, 0.55, curve: Curves.easeOut),
+      ),
+    );
+    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.166, 0.55, curve: Curves.easeOutCubic),
+          ),
+        );
+
+    // Tagline animation (delay: 700ms -> interval 0.233 to 0.65)
+    _taglineOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.233, 0.65, curve: Curves.easeOut),
+      ),
+    );
+    _taglineSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.233, 0.65, curve: Curves.easeOutCubic),
+          ),
+        );
+
+    // Decorative divider animation (delay: 1200ms -> interval 0.4 to 0.8)
+    _dividerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.4, 0.8, curve: Curves.easeIn),
+      ),
+    );
+
+    // Footer animation (delay: 1500ms -> interval 0.5 to 0.9)
+    _footerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.5, 0.9, curve: Curves.easeIn),
+      ),
+    );
+
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _navigateToNextScreen();
+      }
+    });
+
+    _controller.forward();
+  }
+
+  void _navigateToNextScreen() {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+
+    final auth = context.read<AuthService>();
+
+    final Widget targetScreen =
+        auth.user != null ? const DiscoverHomeScreen() : const LoginScreen();
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 600),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isDesktop = screenSize.width >= 768;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A1C1C),
+      body: GestureDetector(
+        onTap: _navigateToNextScreen,
+        behavior: HitTestBehavior.opaque,
+        child: Stack(
+        children: [
+          // Full-Bleed Cinematic Background Canvas
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _bgScaleAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _bgScaleAnimation.value,
+                  child: child,
+                );
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuApdx33RlBm7RLx4DrX_8YjrW25U20hfe-H-6G1bzTYDDSugheQwU6bYVoRueIHQbXrDy7Mgcx--1LCVD400ZrLuj7Xg-3b84SAp-IQU--IkvQmH_t0Y4Gc4d80BWTlo4-ibS92pSJXeCgoQVbZGBDfrJfc_QezGLlpc7S9K8tXjcF0TbtMRuh15iwjN_J8AMI58l4vlalg4Z3N_KTntGIGzg2Qn1jdsEf7ie7jMbt1YMFiV45xFTh2qQ',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Container(color: const Color(0xFF173809)),
+                  ),
+                  // Soft Dark Overlay for Contrast with 2px blur
+                  BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x661A1C1C), // rgba(26, 28, 28, 0.4)
+                            Color(0x991A1C1C), // rgba(26, 28, 28, 0.6)
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Content Container
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 64.0 : 20.0,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Logo Section (slide-up + opacity)
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _logoOpacity.value,
+                          child: FractionalTranslation(
+                            translation: _logoSlide.value,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: isDesktop ? 128 : 96,
+                        height: isDesktop ? 128 : 96,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.25),
+                              blurRadius: 25,
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: ColorFiltered(
+                                colorFilter: const ColorFilter.mode(
+                                  Colors.white,
+                                  BlendMode.srcIn,
+                                ),
+                                child: Image.network(
+                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuDARqoYGQGKuTYrGSHQwglybE7fmVD086ND7NjMak7RqhnUPtGXh4oKIfqjUXEgZQo0Iyand4b7qw-fhL1VIPFodFaGLPXy5EgQfLBWeGIPsubuGv0Y5cFXMpCnAxkF6RsdR00xJrWVuda5nI8-t5IerDpTamCm7S6Uj4-msOq1BFsmUb3PUuZWe24jqcQYMdO_m04CsiMAi6qCB837rXqckDScVVR9l-dauVu6vdWDA04fxVb7eKuvdg',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        Icons.eco,
+                                        color: Colors.white,
+                                        size: 48,
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32), // mb-8
+                    // Brand Name
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _titleOpacity.value,
+                          child: FractionalTranslation(
+                            translation: _titleSlide.value,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'AgroZemex',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: isDesktop ? 48.0 : 36.0,
+                          height: isDesktop ? 1.1 : 1.2,
+                          letterSpacing: isDesktop
+                              ? 48.0 * -0.03
+                              : 36.0 * -0.02,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16), // mb-4
+                    // Tagline
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _taglineOpacity.value,
+                          child: FractionalTranslation(
+                            translation: _taglineSlide.value,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "INVEST IN THE EARTH'S FOUNDATION.",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 18.0,
+                          height: 1.6,
+                          letterSpacing: 18.0 * 0.1,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ),
+
+                    // Decorative Pacing Element
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _dividerOpacity.value,
+                          child: child,
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(
+                          top: 80.0,
+                        ), // mt-section-gap (80px)
+                        height: 64.0, // h-16
+                        width: 1.0, // w-px
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withValues(alpha: 0.0),
+                              Colors.white.withValues(alpha: 0.5),
+                              Colors.white.withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Footer Aesthetic
+          Positioned(
+            bottom: 48.0, // bottom-12 (48px)
+            left: 0,
+            right: 0,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Opacity(opacity: _footerOpacity.value, child: child);
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'AGRICULTURAL ASSET CLASS',
+                    style: GoogleFonts.inter(
+                      fontSize: 10.0,
+                      letterSpacing: 2.0, // 0.2em
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 4.0,
+                    height: 4.0,
+                    decoration: const BoxDecoration(
+                      color: Color(0x33FFFFFF), // bg-white/20
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'INSTITUTIONAL PRECISION',
+                    style: GoogleFonts.inter(
+                      fontSize: 10.0,
+                      letterSpacing: 2.0, // 0.2em
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+    );
+  }
+}
+
+/*
+================================================================================
+PREVIOUS WELCOME SCREEN CODE (PRESERVED IN COMMENTED FORM AS REQUESTED)
+================================================================================
+
 import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/crops/models/crop_card_model.dart';
@@ -14,14 +423,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../auth/services/auth_service.dart';
 
-class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key});
-
-  @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
-}
-
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _OldWelcomeScreenState extends State<WelcomeScreen> {
   late Future<QuerySnapshot> _listingFuture;
   late Future<QuerySnapshot> _cropFuture;
 
@@ -76,6 +478,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       searchTokens: List<String>.from(data['search_tokens'] ?? []),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -285,26 +688,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         )
                   ],
                 ),
-        //                Column(
-        //                  children: [
-        //                   FutureBuilder<QuerySnapshot>(
-        //                    future: FirebaseFirestore.instance
-        //                  .collection('listings')
-        //                  .limit(1)
-        //                  .get(),
-        //                builder: (context, snapshot) {
-        //              if (!snapshot.hasData) return const SizedBox();
-        
-        //     return Column(
-        //       children: snapshot.data!.docs
-        //           .map((doc) => LandCard(item: mapDocToModel(doc)))
-        //           .toList(),
-        //     );
-        //   },
-        // )
-        //             ],
-        //                ),
-               
               ],
             ),
           ),
@@ -317,5 +700,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
        ),
     );
   }
-
 }
+================================================================================
+*/

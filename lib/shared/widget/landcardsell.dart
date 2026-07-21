@@ -1,7 +1,7 @@
-import 'package:agrozemex/features/home/screens/home_screen.dart';
+import 'package:agrozemex/core/theme/theme.dart';
+import 'package:agrozemex/features/home/screens/listing_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import '../../features/home/models/listing_card_model.dart';
 
 class LandCard extends StatelessWidget {
@@ -14,26 +14,141 @@ class LandCard extends StatelessWidget {
     final double? distanceKm =
         item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
 
+    final String photoUrl = item.photoPaths.isNotEmpty
+        ? item.photoPaths.first
+        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAOYUa4up7yejrC6JO_2EoHEWoVIyqAvhNM5cM3hi9hsD7shv5PGlEpTZpODAYxjJS3zgwqetiLJ4UKsRCrEIQllOc7ocG71nUN8uEGLohZIz_9efE2w3EIOb676HK3BtKgPXyijfCGwsGtlBtDpbbcTDaZRD1AmEGDOmO5DQys5v3qjCWhEwS_y73nEC3JFn44Z4n3rCC9UziBmNP1F3770_73okhYsV8LsIe8uXy6irW_mQ3uv2nxGg';
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ListingDetailScreen(
+              listingId: item.id,
+              title: item.title,
+              price: item.price,
+              description: item.description,
+              areaInSqMeters: item.areaInSqMeters,
+              boundaryPoints: item.boundaryPoints,
+              photoPaths: item.photoPaths,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AgroZemexTokens.radiusLargeCard,
+          boxShadow: AgroZemexTokens.softShadows,
+        ),
+        child: ClipRRect(
+          borderRadius: AgroZemexTokens.radiusLargeCard,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Photo Thumbnail Container
+              SizedBox(
+                height: 120,
+                width: double.infinity,
+                child: Image.network(
+                  photoUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: AgroZemexTokens.surfaceContainerLow,
+                    child: const Icon(
+                      Icons.landscape,
+                      color: AgroZemexTokens.onSurfaceVariant,
+                      size: 32,
+                    ),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AgroZemexTokens.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '₹ ${item.price.toStringAsFixed(0)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: AgroZemexTokens.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (distanceKm != null) ...[
+                          Text(
+                            '${distanceKm.toStringAsFixed(1)} km away • ',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AgroZemexTokens.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                        Text(
+                          '${item.areaInSqMeters.toStringAsFixed(0)} sq m',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AgroZemexTokens.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/*
+================================================================================
+PREVIOUS LAND CARD CODE (PRESERVED IN COMMENTED FORM AS REQUESTED)
+================================================================================
+
+import 'package:agrozemex/features/home/screens/home_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import '../../features/home/models/listing_card_model.dart';
+
+class _OldLandCard extends StatelessWidget {
+  final ListingCardModel item;
+
+  const _OldLandCard({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final double? distanceKm =
+        item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
+
     return InkWell(
       onTap: () {
-     //   final auth = context.read<AuthService>();
-
-      //  if (auth.user != null) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => HomeScreen(),
+              builder: (_) => const HomeScreen(),
             ),
           );
-        // } else {
-        //   ScaffoldMessenger.of(context).showSnackBar(
-        //     const SnackBar(content: Text("Please login first!")),
-        //   );
-        //   Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (_) => const LoginScreen()),
-        //   );
-        // }
       },
       child: Card(
         elevation: 4,
@@ -80,3 +195,5 @@ class LandCard extends StatelessWidget {
     );
   }
 }
+================================================================================
+*/

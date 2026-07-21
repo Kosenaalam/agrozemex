@@ -30,8 +30,8 @@ class LocationService {
       }
 
       _currentPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+        desiredAccuracy: LocationAccuracy.medium,
+      ).timeout(const Duration(seconds: 3));
     } catch (_) {
       _currentPosition = null;
     } finally {

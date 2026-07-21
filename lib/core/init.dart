@@ -1,25 +1,23 @@
-import 'package:firebase_core/firebase_core.dart';
-import '../firebase_options.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import '../shared/services/location_service.dart';
 
 class AppInit {
-  static late LocationService locationService;
+  static final LocationService locationService = LocationService();
 
-  static Future<void> initialize() async {
+  static Future<void> initializeBackgroundServices() async {
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-
       MapboxOptions.setAccessToken(
         'pk.eyJ1Ijoia29zZW5hYWxhbSIsImEiOiJjbWpoMHdsNWcxM282M2dxeDR4djNsc3B3In0.V6myQFEzeMcFWn3CUwnrlQ',
       );
 
-      locationService = LocationService();
-      await locationService.initialize();
+      // Initialize location asynchronously in the background so it never blocks app startup or causes ANR
+      unawaited(locationService.initialize().catchError((e) {
+        debugPrint('Location async init error: $e');
+      }));
     } catch (e) {
-      rethrow;
+      debugPrint('Background init error: $e');
     }
   }
 }

@@ -1,15 +1,17 @@
-import 'package:agrozemex/features/auth/screens/login_screen.dart';
-import 'package:agrozemex/features/auth/services/auth_service.dart';
-import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+
+import 'package:agrozemex/core/theme/theme.dart';
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
+import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
+import 'package:agrozemex/features/auth/services/auth_service.dart';
+import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
 import '../../maps/screens/map_screen.dart';
 import '../models/listing_card_model.dart';
 import '../services/listing_query_service.dart';
 import '../screens/listing_detail_screen.dart';
-import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,7 +28,625 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hasMore = true;
 
   final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
 
+  @override
+  void initState() {
+    super.initState();
+    final service = context.read<ListingQueryService>();
+    service.resetPagination();
+    _loadMore();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoading &&
+          _hasMore) {
+        _loadMore();
+      }
+    });
+
+    _searchController.addListener(() {
+      setState(() {});
+    });
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore) return;
+
+    _isLoading = true;
+
+    try {
+      final service = context.read<ListingQueryService>();
+      final newListings =
+          await service.fetchNextPage(searchQuery: _searchQuery);
+
+      if (!mounted) return;
+
+      setState(() {
+        if (newListings.isEmpty) {
+          _hasMore = false;
+        } else {
+          final existingIds = _listings.map((e) => e.id).toSet();
+          final uniqueNew =
+              newListings.where((e) => !existingIds.contains(e.id)).toList();
+          _listings.addAll(uniqueNew);
+        }
+      });
+    } catch (e) {
+      debugPrint('LoadMore error. Something went wrong: $e');
+      if (mounted) {
+        setState(() {
+          _hasMore = false;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _clearSearch() {
+    final service = context.read<ListingQueryService>();
+    service.resetPagination();
+
+    _searchController.clear();
+
+    setState(() {
+      _searchQuery = '';
+      _listings.clear();
+      _hasMore = true;
+    });
+
+    _loadMore();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onCardTap(ListingCardModel item) {
+    final auth = context.read<AuthService>();
+    if (auth.user != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ListingDetailScreen(
+            listingId: item.id,
+            title: item.title,
+            price: item.price,
+            description: item.description,
+            areaInSqMeters: item.areaInSqMeters,
+            boundaryPoints: item.boundaryPoints,
+            photoPaths: item.photoPaths,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please login first!")),
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AgroZemexTokens.surface,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(64),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: AgroZemexTokens.glassBlurFilter,
+            child: AppBar(
+              backgroundColor: AgroZemexTokens.surface.withValues(alpha: 0.8),
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.menu, color: AgroZemexTokens.primary),
+                onPressed: () {},
+              ),
+              title: Text(
+                'AgroZemex',
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AgroZemexTokens.primary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              actions: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileScreenDash(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 16),
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AgroZemexTokens.surfaceContainerLow,
+                        width: 2,
+                      ),
+                      image: const DecorationImage(
+                        image: NetworkImage(
+                          'https://lh3.googleusercontent.com/aida-public/AB6AXuBHWYyWuiwUIuuXEk9gAmo4e9jNc3SSmmONXe2uY3Ba0WgkZT7XPt-36o5uiD5R_N_qV4YpeGpZNfelQi2Q-8JnRGy6Xok8gbDjGHthbo52jEfalPSKQm6qZ5eQ3AJKQub8_mgyq0VcgT8ZUZsp8amVhTGvUwPkDJyoz6afUlYWaRcbs_6uCYb80eeDSDi1A-PZcUyqjUxPBsXiQF2zX3JLAJmhkOiUDgfJSBjQzcYbYdsQh_Ll8w0GFg',
+                        ),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: CustomScrollView(
+        controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // Floating Search & Filter Pill Header
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AgroZemexTokens.marginMobile),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                  boxShadow: AgroZemexTokens.softShadows,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.search,
+                      color: AgroZemexTokens.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) {
+                          final query = value.toLowerCase().trim();
+                          _debounce?.cancel();
+                          _debounce =
+                              Timer(const Duration(milliseconds: 300), () {
+                            final service = context.read<ListingQueryService>();
+                            service.resetPagination();
+                            setState(() {
+                              _searchQuery = query;
+                              _listings.clear();
+                              _hasMore = true;
+                              _isLoading = false;
+                            });
+                            _loadMore();
+                          });
+                        },
+                        style: GoogleFonts.inter(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Search location, village or tehsil...',
+                          hintStyle: GoogleFonts.inter(
+                            color: AgroZemexTokens.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          fillColor: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    if (_searchController.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: _clearSearch,
+                      ),
+                    Container(
+                      width: 1,
+                      height: 24,
+                      color: AgroZemexTokens.surfaceContainerLow,
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.tune,
+                        color: AgroZemexTokens.primary,
+                        size: 20,
+                      ),
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Dynamic Bento Property Grid
+          if (_listings.isEmpty && !_isLoading)
+            SliverFillRemaining(
+              child: Center(
+                child: Text(
+                  'No listings found',
+                  style: AgroZemexTokens.bodyLarge,
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AgroZemexTokens.marginMobile,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    if (index == _listings.length) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    // Render Map Callout Banner after 3rd item
+                    if (index == 3) {
+                      return Column(
+                        children: [
+                          _buildMapCalloutTile(context),
+                          const SizedBox(height: 16),
+                          _buildPropertyCard(context, _listings[index]),
+                        ],
+                      );
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: _buildPropertyCard(context, _listings[index]),
+                    );
+                  },
+                  childCount: _listings.length + (_isLoading ? 1 : 0),
+                ),
+              ),
+            ),
+
+          // Load More Button
+          if (_hasMore && !_isLoading && _listings.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0),
+                child: Center(
+                  child: OutlinedButton(
+                    onPressed: _loadMore,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AgroZemexTokens.radiusEight,
+                      ),
+                      side: const BorderSide(
+                        color: AgroZemexTokens.onSurfaceVariant,
+                      ),
+                    ),
+                    child: Text(
+                      'Load More Properties',
+                      style: AgroZemexTokens.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 48)),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const MapScreen()),
+          );
+        },
+        backgroundColor: AgroZemexTokens.primary,
+        child: const Icon(Icons.map, color: Colors.white, size: 26),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: const CustomBottomNav(
+        currentIndex: 1,
+        currentScreen: 'home',
+      ),
+    );
+  }
+
+  Widget _buildPropertyCard(BuildContext context, ListingCardModel item) {
+    final double? distanceKm =
+        item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
+
+    final String photoUrl = item.photoPaths.isNotEmpty
+        ? item.photoPaths.first
+        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAOYUa4up7yejrC6JO_2EoHEWoVIyqAvhNM5cM3hi9hsD7shv5PGlEpTZpODAYxjJS3zgwqetiLJ4UKsRCrEIQllOc7ocG71nUN8uEGLohZIz_9efE2w3EIOb676HK3BtKgPXyijfCGwsGtlBtDpbbcTDaZRD1AmEGDOmO5DQys5v3qjCWhEwS_y73nEC3JFn44Z4n3rCC9UziBmNP1F3770_73okhYsV8LsIe8uXy6irW_mQ3uv2nxGg';
+
+    return GestureDetector(
+      onTap: () => _onCardTap(item),
+      child: Container(
+        height: 320,
+        decoration: BoxDecoration(
+          borderRadius: AgroZemexTokens.radiusLargeCard,
+          boxShadow: AgroZemexTokens.softShadows,
+        ),
+        child: ClipRRect(
+          borderRadius: AgroZemexTokens.radiusLargeCard,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                photoUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: AgroZemexTokens.surfaceContainerLow,
+                  child: const Icon(
+                    Icons.landscape,
+                    color: AgroZemexTokens.onSurfaceVariant,
+                    size: 48,
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.8),
+                      Colors.black.withValues(alpha: 0.1),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Category Pills & Favorite
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AgroZemexTokens.primary.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'ARABLE',
+                          style: AgroZemexTokens.labelCaps.copyWith(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'PREMIUM',
+                          style: AgroZemexTokens.labelCaps.copyWith(
+                            color: AgroZemexTokens.onSurface,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.favorite_border,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+
+              // Title, Specs & Price
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AgroZemexTokens.headlineMedium.copyWith(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        distanceKm != null
+                            ? '${distanceKm.toStringAsFixed(1)} km away'
+                            : 'Bordeaux Region',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(
+                        Icons.straighten,
+                        size: 14,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${item.areaInSqMeters.toStringAsFixed(0)} sq m',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '₹ ${item.price.toStringAsFixed(0)}',
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+    ),
+    ),
+    );
+  }
+
+  Widget _buildMapCalloutTile(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AgroZemexTokens.surfaceContainerLow,
+        borderRadius: AgroZemexTokens.radiusLargeCard,
+        border: Border.all(color: AgroZemexTokens.surfaceContainerLow),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.explore,
+            size: 40,
+            color: AgroZemexTokens.primary,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Map View Available',
+            style: AgroZemexTokens.headlineMedium.copyWith(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Switch to satellite view to explore boundaries and topology.',
+            textAlign: TextAlign.center,
+            style: AgroZemexTokens.bodyLarge.copyWith(
+              fontSize: 13,
+              color: AgroZemexTokens.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MapScreen()),
+              );
+            },
+            icon: const Icon(Icons.map, size: 18),
+            label: Text(
+              'Toggle Map',
+              style: AgroZemexTokens.bodyLarge.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AgroZemexTokens.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: AgroZemexTokens.radiusEight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/*
+================================================================================
+PREVIOUS HOME SCREEN CODE (PRESERVED IN COMMENTED FORM AS REQUESTED)
+================================================================================
+
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
+import 'package:agrozemex/features/auth/services/auth_service.dart';
+import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import '../../maps/screens/map_screen.dart';
+import '../models/listing_card_model.dart';
+import '../services/listing_query_service.dart';
+import '../screens/listing_detail_screen.dart';
+import 'dart:async';
+
+class _OldHomeScreenState extends State<HomeScreen> {
+  String _searchQuery = '';
+  final ScrollController _scrollController = ScrollController();
+  final List<ListingCardModel> _listings = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+
+  final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
 
   @override
@@ -200,143 +820,6 @@ class _HomeScreenState extends State<HomeScreen> {
        ),
     );
   }
-
-  Widget _buildLandCard(BuildContext context, ListingCardModel item) {
-    final double? distanceKm =
-        item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
-
-    return InkWell(
-    onTap: () {
-  final auth = context.read<AuthService>(); 
-  if (auth.user != null) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ListingDetailScreen(
-          listingId: item.id,
-          title: item.title,
-          price: item.price,
-          description: item.description,
-          areaInSqMeters: item.areaInSqMeters,
-          boundaryPoints: item.boundaryPoints,
-          photoPaths: item.photoPaths,
-        ),
-      ),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Please login first!")),
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
-},
-      
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: _buildMiniMap(item.id, item.boundaryPoints),
-              ),
-              const SizedBox(height: 7),
-              Text(
-                item.title,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                '₹ ${item.price.toStringAsFixed(0)}',
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  color: const Color(0xFF2E7D32),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (distanceKm != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.place, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${distanceKm.toStringAsFixed(1)} km away',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              Text(
-                '${item.areaInSqMeters.toStringAsFixed(2)} sq m',
-                style: GoogleFonts.poppins(fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMiniMap(
-    String listingId,
-    List<mapbox.Point> boundaryPoints,
-  ) {
-    return Container(
-      height: 95,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF2F6),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.map_rounded,
-            color: Color(0xFF0D47A1),
-            size: 26,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Tap to view boundary',
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: const Color(0xFF0D47A1),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Text(
-            '${boundaryPoints.length} points marked',
-            style: GoogleFonts.poppins(
-              fontSize: 9,
-              color: Colors.black54,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _searchController.dispose();
-    _debounce?.cancel(); 
-    super.dispose();
-  }
 }
+================================================================================
+*/
