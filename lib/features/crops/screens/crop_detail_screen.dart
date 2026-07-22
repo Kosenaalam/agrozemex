@@ -55,6 +55,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                           return Image.network(
                             photos[index],
                             fit: BoxFit.cover,
+                            cacheWidth: (MediaQuery.of(context).size.width * MediaQuery.of(context).devicePixelRatio).toInt(),
                             errorBuilder: (context, error, stackTrace) =>
                                 Container(
                               color: AgroZemexTokens.surfaceContainerLow,
@@ -626,6 +627,7 @@ class _OldCropDetailScreen extends StatelessWidget {
                           item.photoPaths[index],
                           width: 180,
                           fit: BoxFit.cover,
+                          cacheWidth: 360,
                           errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
                         ),
                       ),

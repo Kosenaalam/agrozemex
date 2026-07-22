@@ -136,7 +136,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                         _errorMessage = null;
                       });
                       try {
-                        await auth.sendPasswordResetOtp(widget.email);
+                        await auth.sendPasswordResetEmail(widget.email);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -246,10 +246,9 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                                 pass,
                               );
                             } else {
-                              await auth.completeSignupWithPassword(
+                              await auth.registerWithEmailAndPassword(
                                 widget.email,
                                 pass,
-                                'email-otp-verification-completed',
                               );
                             }
                             if (context.mounted) {
@@ -258,17 +257,24 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                                 (route) => route.isFirst,
                               );
                             }
+                          } on AuthException catch (e) {
+                            if (mounted) {
+                              setState(() {
+                                if (e.code == 'user-exists') {
+                                  _errorMessage =
+                                      'An account already exists with this email address. Please login instead.';
+                                } else {
+                                  _errorMessage = e.message;
+                                }
+                              });
+                            }
                           } catch (e) {
                             if (mounted) {
                               setState(() {
-                                if (e == 'user-exists') {
-                                  _errorMessage = 'An account already exists with this email address. Please login instead.';
-                                } else {
-                                  _errorMessage = e.toString().replaceFirst(
-                                    'Exception: ',
-                                    '',
-                                  );
-                                }
+                                _errorMessage = e.toString().replaceFirst(
+                                  'Exception: ',
+                                  '',
+                                );
                               });
                             }
                           } finally {

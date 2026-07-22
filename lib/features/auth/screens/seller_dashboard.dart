@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:agrozemex/features/maps/screens/view_listing_map_screen.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
 
 class SellerDashboard extends StatelessWidget {
   final String userId;
@@ -50,6 +52,13 @@ class SellerDashboard extends StatelessWidget {
                       value: isActive,
                       activeThumbColor: Colors.green,
                       onChanged: (value) async {
+                        final auth = Provider.of<AuthService>(context, listen: false);
+                        if (auth.user == null || listing['created_by'] != auth.user!.uid) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Unauthorized: You do not own this listing.')),
+                          );
+                          return;
+                        }
                         await FirebaseFirestore.instance.collection('listings').doc(id).update({'is_active': value});
                       },
                     ),

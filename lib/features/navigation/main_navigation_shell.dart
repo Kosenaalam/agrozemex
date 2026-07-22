@@ -31,6 +31,7 @@ class MainNavigationShell extends StatefulWidget {
 
 class MainNavigationShellState extends State<MainNavigationShell> {
   late int _selectedIndex;
+  final List<bool> _loaded = [false, false, false, false, false];
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -44,6 +45,7 @@ class MainNavigationShellState extends State<MainNavigationShell> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex.clamp(0, 4);
+    _loaded[_selectedIndex] = true;
   }
 
   void switchTab(int index) {
@@ -70,6 +72,7 @@ class MainNavigationShellState extends State<MainNavigationShell> {
     if (_selectedIndex != index) {
       setState(() {
         _selectedIndex = index;
+        _loaded[index] = true;
       });
     }
   }
@@ -79,7 +82,9 @@ class MainNavigationShellState extends State<MainNavigationShell> {
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: _screens,
+        children: List.generate(_screens.length, (index) {
+          return _loaded[index] ? _screens[index] : const SizedBox.shrink();
+        }),
       ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _selectedIndex,

@@ -30,7 +30,8 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
   Future<void> _fetchListing() async {
     try {
       final doc = await FirebaseFirestore.instance.collection('listings').doc(widget.listingId).get();
-      if (!doc.exists || !mounted) {
+      if (!mounted) return;
+      if (!doc.exists) {
         setState(() {
           _errorMessage = 'Listing not found';
           _isLoading = false;
@@ -44,14 +45,17 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
           .toList() ??
           [];
 
-      if (points.isEmpty && mounted) {
-        setState(() {
-          _errorMessage = 'No boundary data available';
-          _isLoading = false;
-        });
+      if (points.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'No boundary data available';
+            _isLoading = false;
+          });
+        }
         return;
       }
 
+      if (!mounted) return;
       setState(() {
         _boundaryPoints = points;
         _isLoading = false;

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/services/auth_service.dart';
 import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
+import 'package:agrozemex/core/theme/theme.dart';
 
 /// AgroZemex Splash Screen built strictly from HTML/Tailwind specifications.
 class WelcomeScreen extends StatefulWidget {
@@ -167,11 +168,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuApdx33RlBm7RLx4DrX_8YjrW25U20hfe-H-6G1bzTYDDSugheQwU6bYVoRueIHQbXrDy7Mgcx--1LCVD400ZrLuj7Xg-3b84SAp-IQU--IkvQmH_t0Y4Gc4d80BWTlo4-ibS92pSJXeCgoQVbZGBDfrJfc_QezGLlpc7S9K8tXjcF0TbtMRuh15iwjN_J8AMI58l4vlalg4Z3N_KTntGIGzg2Qn1jdsEf7ie7jMbt1YMFiV45xFTh2qQ',
+                  Image.asset(
+                    AppAssets.loginHero,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        Container(color: const Color(0xFF173809)),
                   ),
                   // Soft Dark Overlay for Contrast with 2px blur
                   BackdropFilter(
@@ -245,15 +244,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   Colors.white,
                                   BlendMode.srcIn,
                                 ),
-                                child: Image.network(
-                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuDARqoYGQGKuTYrGSHQwglybE7fmVD086ND7NjMak7RqhnUPtGXh4oKIfqjUXEgZQo0Iyand4b7qw-fhL1VIPFodFaGLPXy5EgQfLBWeGIPsubuGv0Y5cFXMpCnAxkF6RsdR00xJrWVuda5nI8-t5IerDpTamCm7S6Uj4-msOq1BFsmUb3PUuZWe24jqcQYMdO_m04CsiMAi6qCB837rXqckDScVVR9l-dauVu6vdWDA04fxVb7eKuvdg',
+                                child: Image.asset(
+                                  'assets/icons/app_icon.png',
                                   fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(
-                                        Icons.eco,
-                                        color: Colors.white,
-                                        size: 48,
-                                      ),
                                 ),
                               ),
                             ),

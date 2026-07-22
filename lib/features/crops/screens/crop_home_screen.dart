@@ -600,18 +600,9 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.network(
-                              'https://lh3.googleusercontent.com/aida-public/AB6AXuBSheftoyu-fN82EzIuZbpy_w9pULTVcLGfmW4poaT4kf8-PBbbhTuotiLrLgyOaAeNar0I3E8IqyIy4eZJCfn57ZiegC8BGhM6DgQAsWb_BEf_VZRWNegogrBc_c1-MS43JdBwpWgAqqz3yscgjYQo2OMgSt-Pz9wlg2kNYfK4-0utK9EnugDvp54U7k_jDZfMRA59Gy1yM0zXeSI74tDrDddQmj4v3XTnkZ8vorvz5FrZGJZH6G8I4A',
+                            Image.asset(
+                              AppAssets.loginHero,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                color: AgroZemexTokens.surfaceContainerLow,
-                                child: const Icon(
-                                  Icons.grass,
-                                  color: AgroZemexTokens.onSurfaceVariant,
-                                  size: 48,
-                                ),
-                              ),
                             ),
                             Container(
                               decoration: BoxDecoration(
@@ -878,9 +869,7 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
       distance = _calculateDistance(item.location);
     }
 
-    final String photoUrl = item.photoPaths.isNotEmpty
-        ? item.photoPaths.first
-        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDn8b8ZBddPpZtLdFK3P_xY0zTQrn_lw7S7GsLxdptFSnhC-aJ7Sak-aRjk6H7rUpW8-YGxIfYq6wZngx6Odb0KAzuPopv9OUPCxgwFl2OtZPLaj8yfzDIXtS03PB8nSuG5kN20aYlVGzA_sI8in9xGfXoJorldd1EUd5m22ntU5hfwpeHAcNhcVNEi30R0qFepjlhF-IyePLVNsIAIjPdAHrGotLUjebNckGUKlrVxPaaDOrYnaEsdAQ';
+    final bool hasImage = item.photoPaths.isNotEmpty;
 
     return GestureDetector(
       onTap: () {
@@ -919,18 +908,25 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      photoUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: AgroZemexTokens.surfaceContainerLow,
-                        child: const Icon(
-                          Icons.grass,
-                          color: AgroZemexTokens.onSurfaceVariant,
-                          size: 32,
-                        ),
-                      ),
-                    ),
+                    hasImage
+                        ? Image.network(
+                            item.photoPaths.first,
+                            fit: BoxFit.cover,
+                            cacheHeight: 170,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(child: Icon(Icons.error));
+                            },
+                          )
+                        : Image.asset(
+                            AppAssets.defaultLand,
+                            fit: BoxFit.cover,
+                          ),
                     if (distance != null)
                       Positioned(
                         top: 8,
@@ -1535,6 +1531,7 @@ class _OldCropHomeScreenState extends State<_OldCropHomeScreen> {
                         height: 85,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        cacheHeight: 170,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return const Center(
@@ -1545,9 +1542,11 @@ class _OldCropHomeScreenState extends State<_OldCropHomeScreen> {
                           return const Center(child: Icon(Icons.error));
                         },
                       )
-                    : const SizedBox(
+                    : Image.asset(
+                        AppAssets.defaultLand,
                         height: 85,
-                        child: Center(child: Text('No photo')),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
                       ),
               ),
               const SizedBox(height: 7),

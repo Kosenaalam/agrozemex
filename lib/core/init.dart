@@ -9,7 +9,11 @@ class AppInit {
   static Future<void> initializeBackgroundServices() async {
     try {
       MapboxOptions.setAccessToken(
-        'pk.eyJ1Ijoia29zZW5hYWxhbSIsImEiOiJjbWpoMHdsNWcxM282M2dxeDR4djNsc3B3In0.V6myQFEzeMcFWn3CUwnrlQ',
+        const String.fromEnvironment(
+          'MAPBOX_TOKEN',
+          defaultValue:
+              'pk.eyJ1Ijoia29zZW5hYWxhbSIsImEiOiJjbWpoMHdsNWcxM282M2dxeDR4djNsc3B3In0.V6myQFEzeMcFWn3CUwnrlQ',
+        ),
       );
 
       // Initialize location asynchronously in the background so it never blocks app startup or causes ANR

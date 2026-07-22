@@ -44,7 +44,7 @@ class CropCardModel {
       unit: data['unit'] ?? 'kg',
       village: data['village'] ?? 'Unknown',
       location: data['location'] as GeoPoint? ?? GeoPoint(0, 0),
-      createdAt: data['created_at'] as Timestamp,
+      createdAt: data['created_at'] as Timestamp? ?? Timestamp.now(),
       isActive: data['is_active'] as bool? ?? true,
       searchTokens: List<String>.from(data['search_tokens'] ?? []),
     );

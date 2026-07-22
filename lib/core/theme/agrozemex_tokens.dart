@@ -140,3 +140,12 @@ abstract class AgroZemexTokens {
         sigmaY: glassBlurSigma,
       );
 }
+
+/// Centralized asset path constants for the AgroZemex app.
+abstract class AppAssets {
+  AppAssets._();
+
+  static const String defaultAvatar = 'assets/images/default_avatar.png';
+  static const String loginHero = 'assets/images/login_hero.png';
+  static const String defaultLand = 'assets/images/default_land.png';
+}

@@ -7,10 +7,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../shared/services/user_firestore_service.dart';
 
+class AuthException implements Exception {
+  final String code;
+  final String message;
+  AuthException(this.code, this.message);
+
+  @override
+  String toString() => message;
+}
+
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final UserFirestoreService _userService;
   
-  static const String googleWebClientId = '783000159900-du9p2ris69hsceubc4t0f9fcf4skne4h.apps.googleusercontent.com';
+  static const String googleWebClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue: '783000159900-du9p2ris69hsceubc4t0f9fcf4skne4h.apps.googleusercontent.com',
+  );
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: googleWebClientId,
@@ -23,7 +36,12 @@ class AuthService extends ChangeNotifier {
 
   static const String _savedEmailKey = 'savedEmail';
 
-  AuthService() {
+  SharedPreferences? _prefs;
+  Future<SharedPreferences> get _sharedPrefs async =>
+      _prefs ??= await SharedPreferences.getInstance();
+
+  AuthService({UserFirestoreService? userService})
+      : _userService = userService ?? UserFirestoreService() {
     // PERF FIX: Deferred Google sign-in init to post-frame so it NEVER blocks
     // the authStateChanges() listener which determines isLoading state.
     // Previously, the constructor called async _initializeGoogleSignIn() inline which
@@ -72,28 +90,36 @@ class AuthService extends ChangeNotifier {
 
   // --- Email & Password Sign In ---
   Future<UserCredential> signInWithEmailAndPassword(String email, String password) async {
-    final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
-    if (cred.user != null) {
-      await UserFirestoreService().createUserIfNotExists(cred.user!);
-      await saveEmailToPrefs(email);
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
+      if (cred.user != null) {
+        await _userService.createUserIfNotExists(cred.user!);
+        await saveEmailToPrefs(email);
+      }
+      return cred;
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(e.code, e.message ?? 'Sign in failed.');
+    } catch (e) {
+      throw AuthException('unknown', e.toString());
     }
-    return cred;
   }
 
   // --- Email & Password Sign Up ---
-  Future<UserCredential> createUserWithEmailAndPassword(String email, String password) async {
+  Future<UserCredential> registerWithEmailAndPassword(String email, String password) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
       if (cred.user != null) {
-        await UserFirestoreService().createUserIfNotExists(cred.user!);
+        await _userService.createUserIfNotExists(cred.user!);
         await saveEmailToPrefs(email);
       }
       return cred;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        throw 'user-exists';
+        throw AuthException('user-exists', 'An account already exists with this email address.');
       }
-      rethrow;
+      throw AuthException(e.code, e.message ?? 'Registration failed.');
+    } catch (e) {
+      throw AuthException('unknown', e.toString());
     }
   }
 
@@ -103,15 +129,6 @@ class AuthService extends ChangeNotifier {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
       debugPrint("Password reset error: $e");
-      rethrow;
-    }
-  }
-
-  Future<void> sendPasswordResetOtp(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } catch (e) {
-      debugPrint("Password reset OTP sending error: $e");
       rethrow;
     }
   }
@@ -134,26 +151,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<UserCredential> completeSignupWithPassword(
-    String email,
-    String password,
-    String otpVerificationContext,
-  ) async {
-    try {
-      final cred = await _auth.createUserWithEmailAndPassword(email: email, password: password);
-      if (cred.user != null) {
-        await UserFirestoreService().createUserIfNotExists(cred.user!);
-        await saveEmailToPrefs(email);
-      }
-      return cred;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        throw 'user-exists';
-      }
-      rethrow;
-    }
-  }
-
   // --- Google Sign In ---
   Future<UserCredential?> signInWithGoogle() async {
     try {
@@ -169,7 +166,7 @@ class AuthService extends ChangeNotifier {
 
       final cred = await _auth.signInWithCredential(credential);
       if (cred.user != null) {
-        await UserFirestoreService().createUserIfNotExists(cred.user!);
+        await _userService.createUserIfNotExists(cred.user!);
         if (cred.user!.email != null) {
           await saveEmailToPrefs(cred.user!.email!);
         }
@@ -177,13 +174,16 @@ class AuthService extends ChangeNotifier {
       return cred;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'account-exists-with-different-credential') {
-        throw 'An account already exists with the same email address but different sign-in credentials. Please sign in using a provider associated with this email.';
+        throw AuthException(
+          e.code,
+          'An account already exists with the same email address but different sign-in credentials. Please sign in using a provider associated with this email.',
+        );
       }
       debugPrint("Google sign-in error: $e");
-      rethrow;
+      throw AuthException(e.code, e.message ?? 'Google sign-in failed.');
     } catch (e) {
       debugPrint("Google sign-in error: $e");
-      rethrow;
+      throw AuthException('unknown', e.toString());
     }
   }
 
@@ -204,7 +204,7 @@ class AuthService extends ChangeNotifier {
 
       final cred = await _auth.signInWithCredential(credential);
       if (cred.user != null) {
-        await UserFirestoreService().createUserIfNotExists(cred.user!);
+        await _userService.createUserIfNotExists(cred.user!);
         if (cred.user!.email != null) {
           await saveEmailToPrefs(cred.user!.email!);
         }
@@ -212,13 +212,16 @@ class AuthService extends ChangeNotifier {
       return cred;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'account-exists-with-different-credential') {
-        throw 'An account already exists with the same email address but different sign-in credentials. Please sign in using a provider associated with this email.';
+        throw AuthException(
+          e.code,
+          'An account already exists with the same email address but different sign-in credentials. Please sign in using a provider associated with this email.',
+        );
       }
       debugPrint("Apple sign-in error: $e");
-      rethrow;
+      throw AuthException(e.code, e.message ?? 'Apple sign-in failed.');
     } catch (e) {
       debugPrint("Apple sign-in error: $e");
-      rethrow;
+      throw AuthException('unknown', e.toString());
     }
   }
 
@@ -241,7 +244,7 @@ class AuthService extends ChangeNotifier {
           try {
             final userCred = await _auth.signInWithCredential(cred);
             if (userCred.user != null) {
-              await UserFirestoreService().createUserIfNotExists(userCred.user!);
+              await _userService.createUserIfNotExists(userCred.user!);
               if (userCred.user!.phoneNumber != null) {
                 await savePhoneToPrefs(userCred.user!.phoneNumber!);
               }
@@ -286,7 +289,7 @@ class AuthService extends ChangeNotifier {
       );
       final cred = await _auth.signInWithCredential(credential);
       if (cred.user != null) {
-        await UserFirestoreService().createUserIfNotExists(cred.user!);
+        await _userService.createUserIfNotExists(cred.user!);
         if (cred.user!.phoneNumber != null) {
           await savePhoneToPrefs(cred.user!.phoneNumber!);
         }
@@ -294,45 +297,45 @@ class AuthService extends ChangeNotifier {
       return cred;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'invalid-verification-code') {
-        throw 'Invalid OTP. Please check the code and try again.';
+        throw AuthException('invalid-verification-code', 'Invalid OTP. Please check the code and try again.');
       } else if (e.code == 'session-expired') {
-        throw 'OTP session expired. Please request a new code.';
+        throw AuthException('session-expired', 'OTP session expired. Please request a new code.');
       } else {
-        throw e.message ?? 'Authentication failed.';
+        throw AuthException(e.code, e.message ?? 'Authentication failed.');
       }
     } catch (e) {
-      throw 'Unexpected error during verification. Please try again.';
+      throw AuthException('unknown', 'Unexpected error during verification. Please try again.');
     }
   }
 
   // --- SharedPreferences persistent email & phone storage ---
   Future<void> saveEmailToPrefs(String email) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPrefs;
     await prefs.setString(_savedEmailKey, email);
   }
 
   Future<String?> getSavedEmailFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPrefs;
     return prefs.getString(_savedEmailKey);
   }
 
   Future<void> clearSavedEmail() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPrefs;
     await prefs.remove(_savedEmailKey);
   }
 
   Future<void> savePhoneToPrefs(String phone) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPrefs;
     await prefs.setString(_savedPhoneKey, phone);
   }
 
   Future<String?> getSavedPhoneFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPrefs;
     return prefs.getString(_savedPhoneKey);
   }
 
   Future<void> clearSavedPhone() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sharedPrefs;
     await prefs.remove(_savedPhoneKey);
   }
 

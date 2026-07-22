@@ -139,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
     return Scaffold(
       backgroundColor: AgroZemexTokens.surface,
       // PERF FIX: Replaced BackdropFilter (GPU-blocking ImageFilter.blur sigma=20 on every
@@ -199,10 +200,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: AgroZemexTokens.surfaceContainerLow,
                         width: 2,
                       ),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuBHWYyWuiwUIuuXEk9gAmo4e9jNc3SSmmONXe2uY3Ba0WgkZT7XPt-36o5uiD5R_N_qV4YpeGpZNfelQi2Q-8JnRGy6Xok8gbDjGHthbo52jEfalPSKQm6qZ5eQ3AJKQub8_mgyq0VcgT8ZUZsp8amVhTGvUwPkDJyoz6afUlYWaRcbs_6uCYb80eeDSDi1A-PZcUyqjUxPBsXiQF2zX3JLAJmhkOiUDgfJSBjQzcYbYdsQh_Ll8w0GFg',
-                        ),
+                      image: DecorationImage(
+                        image: auth.user?.photoURL != null
+                            ? ResizeImage(
+                                NetworkImage(auth.user!.photoURL!),
+                                width: 100,
+                                height: 100,
+                              ) as ImageProvider
+                            : const AssetImage(AppAssets.defaultAvatar),
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -407,9 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final double? distanceKm =
         item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
 
-    final String photoUrl = item.photoPaths.isNotEmpty
-        ? item.photoPaths.first
-        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAOYUa4up7yejrC6JO_2EoHEWoVIyqAvhNM5cM3hi9hsD7shv5PGlEpTZpODAYxjJS3zgwqetiLJ4UKsRCrEIQllOc7ocG71nUN8uEGLohZIz_9efE2w3EIOb676HK3BtKgPXyijfCGwsGtlBtDpbbcTDaZRD1AmEGDOmO5DQys5v3qjCWhEwS_y73nEC3JFn44Z4n3rCC9UziBmNP1F3770_73okhYsV8LsIe8uXy6irW_mQ3uv2nxGg';
+    final bool hasImage = item.photoPaths.isNotEmpty;
 
     return GestureDetector(
       onTap: () => _onCardTap(item),
@@ -424,18 +427,24 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.network(
-                photoUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: AgroZemexTokens.surfaceContainerLow,
-                  child: const Icon(
-                    Icons.landscape,
-                    color: AgroZemexTokens.onSurfaceVariant,
-                    size: 48,
-                  ),
-                ),
-              ),
+              hasImage
+                  ? Image.network(
+                      item.photoPaths.first,
+                      fit: BoxFit.cover,
+                      cacheHeight: 640,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: AgroZemexTokens.surfaceContainerLow,
+                        child: const Icon(
+                          Icons.landscape,
+                          color: AgroZemexTokens.onSurfaceVariant,
+                          size: 48,
+                        ),
+                      ),
+                    )
+                  : Image.asset(
+                      AppAssets.defaultLand,
+                      fit: BoxFit.cover,
+                    ),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

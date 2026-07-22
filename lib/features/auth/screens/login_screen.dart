@@ -78,6 +78,81 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  void _showEmailInputDialog(BuildContext context) {
+    final TextEditingController emailCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            'Enter Email',
+            style: AgroZemexTokens.headlineMedium.copyWith(color: AgroZemexTokens.primary),
+          ),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'Email Address',
+                hintText: 'name@example.com',
+                labelStyle: AgroZemexTokens.bodyMedium,
+                border: OutlineInputBorder(
+                  borderRadius: AgroZemexTokens.radiusEight,
+                ),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(val.trim())) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: AgroZemexTokens.radiusEight,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: AgroZemexTokens.bodyMedium.copyWith(color: AgroZemexTokens.onSurfaceVariant),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AgroZemexTokens.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: AgroZemexTokens.radiusEight,
+                ),
+              ),
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  final email = emailCtrl.text.trim();
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreatePasswordScreen(email: email, isLogin: true),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _syncOtpFromDigits() {
     _otpCtrl.text = _otpDigitCtrls.map((c) => c.text).join();
   }
@@ -224,13 +299,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      'https://lh3.googleusercontent.com/aida-public/AB6AXuBQ0p0Ca_AuLumAKJzjD-UpF0c07OFWNM53oY7CpjS-Zs1OZJ9mhI0QYmsoo9ZlUEItoiH09pPJBvZYHjXaNTwPsz4ameVW1ltuFPW2veA8Ne8giaMukIQXG7Ds7BXsrBhHX3MrhBE9huq6_bHkbM0uoXJYbtW5i8swDvTBy1xcflAApP5r7xws2ieAMv9uOTaQfWJFrNGTtTFH7HTA8YbtghFZFDRXznhpceJShq1hxpKcfS5ugDjtvQ',
+                    Image.asset(
+                      AppAssets.loginHero,
                       fit: BoxFit.cover,
-                      // Cache at display size to prevent full-resolution decode
-                      cacheWidth: (screenSize.width * 2).toInt(),
-                      errorBuilder: (context, error, stackTrace) =>
-                          Container(color: AgroZemexTokens.primary),
                     ),
                     Container(
                       decoration: BoxDecoration(
@@ -607,12 +678,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Center(
                           child: TextButton.icon(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CreatePasswordScreen(email: ''),
-                                ),
-                              );
+                              _showEmailInputDialog(context);
                             },
                             icon: const Icon(
                               Icons.email_outlined,

@@ -36,6 +36,7 @@ class Cropcardsell extends StatelessWidget {
                         height: 85,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        cacheHeight: 170,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return const Center(child: CircularProgressIndicator());

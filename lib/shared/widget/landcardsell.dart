@@ -14,9 +14,7 @@ class LandCard extends StatelessWidget {
     final double? distanceKm =
         item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
 
-    final String photoUrl = item.photoPaths.isNotEmpty
-        ? item.photoPaths.first
-        : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAOYUa4up7yejrC6JO_2EoHEWoVIyqAvhNM5cM3hi9hsD7shv5PGlEpTZpODAYxjJS3zgwqetiLJ4UKsRCrEIQllOc7ocG71nUN8uEGLohZIz_9efE2w3EIOb676HK3BtKgPXyijfCGwsGtlBtDpbbcTDaZRD1AmEGDOmO5DQys5v3qjCWhEwS_y73nEC3JFn44Z4n3rCC9UziBmNP1F3770_73okhYsV8LsIe8uXy6irW_mQ3uv2nxGg';
+    final bool hasImage = item.photoPaths.isNotEmpty;
 
     return GestureDetector(
       onTap: () {
@@ -50,18 +48,24 @@ class LandCard extends StatelessWidget {
               SizedBox(
                 height: 120,
                 width: double.infinity,
-                child: Image.network(
-                  photoUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: AgroZemexTokens.surfaceContainerLow,
-                    child: const Icon(
-                      Icons.landscape,
-                      color: AgroZemexTokens.onSurfaceVariant,
-                      size: 32,
-                    ),
-                  ),
-                ),
+                child: hasImage
+                    ? Image.network(
+                        item.photoPaths.first,
+                        fit: BoxFit.cover,
+                        cacheHeight: 250,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: AgroZemexTokens.surfaceContainerLow,
+                          child: const Icon(
+                            Icons.landscape,
+                            color: AgroZemexTokens.onSurfaceVariant,
+                            size: 32,
+                          ),
+                        ),
+                      )
+                    : Image.asset(
+                        AppAssets.defaultLand,
+                        fit: BoxFit.cover,
+                      ),
               ),
 
               Padding(

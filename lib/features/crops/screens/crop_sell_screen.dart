@@ -48,8 +48,13 @@ class _CropSellScreenState extends State<CropSellScreen> {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
+        if (_pickedImages.length >= 5) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Maximum limit of 5 photos reached.')),
+          );
+          return;
+        }
         _pickedImages.add(image);
-        if (_pickedImages.length > 5) _pickedImages.length = 5;
       });
     }
   }
@@ -112,6 +117,12 @@ class _CropSellScreenState extends State<CropSellScreen> {
   }
 
   void _submitCrop() async {
+    if (_location == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Location not determined yet. Please check permissions.')),
+      );
+      return;
+    }
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
     try {

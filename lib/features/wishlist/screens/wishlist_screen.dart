@@ -1,15 +1,17 @@
+import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/home/screens/listing_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agrozemex/shared/services/wishlist_service.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import 'package:provider/provider.dart';
 
 class WishlistScreen extends StatelessWidget {
   const WishlistScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final wishlistService = WishlistService();
+    final wishlistService = context.read<WishlistService>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Wishlist')),
@@ -82,14 +84,15 @@ class WishlistScreen extends StatelessWidget {
                                 ? Image.network(
                                     data['photo_paths'][0],
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => Container(
-                                      color: Colors.grey[200],
-                                      child: const Icon(Icons.image_not_supported_rounded, size: 50),
+                                    cacheHeight: 220,
+                                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                                      AppAssets.defaultLand,
+                                      fit: BoxFit.cover,
                                     ),
                                   )
-                                : Container(
-                                    color: Colors.grey[200],
-                                    child: const Icon(Icons.image_not_supported_rounded, size: 50),
+                                : Image.asset(
+                                    AppAssets.defaultLand,
+                                    fit: BoxFit.cover,
                                   ),
                           ),
 

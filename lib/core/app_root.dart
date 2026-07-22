@@ -10,7 +10,8 @@ import '../features/home/services/listing_search_service.dart';
 import '../features/navigation/main_navigation_shell.dart';
 import '../shared/services/location_service.dart';
 import '../shared/services/user_firestore_service.dart';
-import '../../shared/services/storage_service.dart';
+import '../shared/services/storage_service.dart';
+import '../shared/services/wishlist_service.dart';
 import 'init.dart';
 import 'theme/theme.dart';
 
@@ -28,6 +29,7 @@ class AppRoot extends StatelessWidget {
         Provider(create: (_) => StorageService()),
         Provider(create: (_) => CropQueryService()),
         Provider(create: (_) => CropSearchService()),
+        Provider(create: (_) => WishlistService()),
         Provider<LocationService>(create: (_) => AppInit.locationService),
       ],
       child: MaterialApp(

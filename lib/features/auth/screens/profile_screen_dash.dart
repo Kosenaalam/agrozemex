@@ -140,10 +140,14 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                       offset: const Offset(0, 4),
                                     ),
                                   ],
-                                  image: const DecorationImage(
-                                    image: NetworkImage(
-                                      'https://lh3.googleusercontent.com/aida-public/AB6AXuCTB3u7CAy_hB33y30zZ8-z9GOfTocC_1EXOuUs7uL70yof76djmMj6iBw_rYUyod5TJea7TNECm1kNKNN7Da3019qPnxbHro6KgRF6os-sUH1aym6Kz7Kos37GgeViyuwTFzzcV6wlXhZm2RFRCpb7Fm6WDyIOZ5jGZ1DKadyJDPZdsw-5oQ3SIIqgy4DhnshTQ4QWWIY_2tIqdmhDCkRP6hja4XMzy5vEuKLm5kY-Z7Tib3sT9SqweA',
-                                    ),
+                                  image: DecorationImage(
+                                    image: auth.user?.photoURL != null
+                                        ? ResizeImage(
+                                            NetworkImage(auth.user!.photoURL!),
+                                            width: 200,
+                                            height: 200,
+                                          ) as ImageProvider
+                                        : const AssetImage(AppAssets.defaultAvatar),
                                     fit: BoxFit.cover,
                                   ),
                                 ),

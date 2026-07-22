@@ -64,6 +64,8 @@ class _MapScreenState extends State<MapScreen> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      if (!mounted) return;
+
       _mapController?.flyTo(
         mapbox.CameraOptions(
           center: mapbox.Point(

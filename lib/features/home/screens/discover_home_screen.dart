@@ -33,86 +33,83 @@ class _DiscoverHomeScreenState extends State<DiscoverHomeScreen> {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(64),
         child: ClipRRect(
-          child: BackdropFilter(
-            filter: AgroZemexTokens.glassBlurFilter,
-            child: AppBar(
-              backgroundColor: AgroZemexTokens.surface.withValues(alpha: 0.8),
-              elevation: 0,
-              title: Row(
-                children: [
-                  Text(
-                    'AgroZemex',
-                    style: GoogleFonts.inter(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AgroZemexTokens.primary,
-                      letterSpacing: -0.8,
+          child: AppBar(
+            backgroundColor: AgroZemexTokens.surface.withValues(alpha: 0.95),
+            elevation: 0,
+            title: Row(
+              children: [
+                Text(
+                  'AgroZemex',
+                  style: GoogleFonts.inter(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AgroZemexTokens.primary,
+                    letterSpacing: -0.8,
+                  ),
+                ),
+                if (isDesktop) ...[
+                  const SizedBox(width: 48),
+                  TextButton(
+                    onPressed: () {},
+                    child: Text(
+                      'Discover',
+                      style: AgroZemexTokens.bodyLarge.copyWith(
+                        color: AgroZemexTokens.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  if (isDesktop) ...[
-                    const SizedBox(width: 48),
-                    TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        'Discover',
-                        style: AgroZemexTokens.bodyLarge.copyWith(
-                          color: AgroZemexTokens.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  TextButton(
+                    onPressed: () {},
+                    child: Text(
+                      'Portfolio',
+                      style: AgroZemexTokens.bodyLarge.copyWith(
+                        color: AgroZemexTokens.onSurfaceVariant,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        'Portfolio',
-                        style: AgroZemexTokens.bodyLarge.copyWith(
-                          color: AgroZemexTokens.onSurfaceVariant,
-                        ),
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    child: Text(
+                      'Insights',
+                      style: AgroZemexTokens.bodyLarge.copyWith(
+                        color: AgroZemexTokens.onSurfaceVariant,
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        'Insights',
-                        style: AgroZemexTokens.bodyLarge.copyWith(
-                          color: AgroZemexTokens.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ],
-              ),
-              actions: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ProfileScreenDash(),
+              ],
+            ),
+            actions: [
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProfileScreenDash(),
+                    ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AgroZemexTokens.surfaceContainerLow,
+                      width: 2,
+                    ),
+                    image: const DecorationImage(
+                      image: NetworkImage(
+                        'https://lh3.googleusercontent.com/aida-public/AB6AXuAM3ZeMJ8kaRIKQ1DuWCITMMC-V46Hl45-0I9w1r2WzleT9cIHQ6sjA8_-vvFJ7zWdj8kl-u1VfTitPXNXy5q2-aA3NnNyqRW1LQGA6kYD6jqM1BNh9DmkcnG2rjn-zBqp1AR012nRGXouSGzmv0gx3hp1PG9WwyIlrYNES01msRvAch177hTbPQtMfeRVPTfDA5HggsT8y_TYdyUQ2m6oh64I18i_2J-BFMDN8pkDTIcEJOSbxZb9GPA',
                       ),
-                    );
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AgroZemexTokens.surfaceContainerLow,
-                        width: 2,
-                      ),
-                      image: const DecorationImage(
-                        image: NetworkImage(
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuAM3ZeMJ8kaRIKQ1DuWCITMMC-V46Hl45-0I9w1r2WzleT9cIHQ6sjA8_-vvFJ7zWdj8kl-u1VfTitPXNXy5q2-aA3NnNyqRW1LQGA6kYD6jqM1BNh9DmkcnG2rjn-zBqp1AR012nRGXouSGzmv0gx3hp1PG9WwyIlrYNES01msRvAch177hTbPQtMfeRVPTfDA5HggsT8y_TYdyUQ2m6oh64I18i_2J-BFMDN8pkDTIcEJOSbxZb9GPA',
-                        ),
-                        fit: BoxFit.cover,
-                      ),
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

@@ -61,6 +61,7 @@ flutter:
   assets:
     - assets/icons/blue_circle.png
     - assets/icons/app_icon.png
+    - assets/images/
     - assets/fonts/
 
 dev_dependencies:

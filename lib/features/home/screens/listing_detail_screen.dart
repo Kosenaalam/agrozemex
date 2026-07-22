@@ -170,6 +170,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ? Image.network(
                 path,
                 fit: BoxFit.cover,
+                cacheWidth: (MediaQuery.of(context).size.width * MediaQuery.of(context).devicePixelRatio).toInt(),
                 loadingBuilder: (c, w, p) => p == null
                     ? w
                     : const Center(child: CircularProgressIndicator()),
