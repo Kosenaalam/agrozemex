@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -9,6 +7,9 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
 import 'package:agrozemex/features/maps/screens/listing_details_screen.dart';
+import '../widgets/area_stats_panel.dart';
+import '../widgets/map_action_buttons.dart';
+import '../services/boundary_service.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -93,13 +94,19 @@ class _MapScreenState extends State<MapScreen> {
       if (_isSaved) return;
 
       final mapbox.Point newPoint = annotation.geometry;
-      final int index = _boundaryPoints.indexWhere(
-        (p) =>
-            p.coordinates.lng == newPoint.coordinates.lng &&
-            p.coordinates.lat == newPoint.coordinates.lat,
-      );
+      int index = -1;
+      double minDistance = double.infinity;
+      for (int i = 0; i < _boundaryPoints.length; i++) {
+        final p = _boundaryPoints[i];
+        final dist = ((p.coordinates.lng - newPoint.coordinates.lng).abs() +
+                     (p.coordinates.lat - newPoint.coordinates.lat).abs()).toDouble();
+        if (dist < minDistance) {
+          minDistance = dist;
+          index = i;
+        }
+      }
 
-      if (index != -1) {
+      if (index != -1 && minDistance < 0.01) {
         setState(() {
           _boundaryPoints[index] = newPoint;
           // PERF FIX: Recompute cached area when drag changes points
@@ -160,25 +167,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   double _calculateAreaSqMeters() {
-    if (_boundaryPoints.length < 3) return 0.0;
-
-    const double earthRadius = 6378137.0;
-    double area = 0.0;
-
-    for (int i = 0; i < _boundaryPoints.length; i++) {
-      final mapbox.Position p1 = _boundaryPoints[i].coordinates;
-      final mapbox.Position p2 =
-          _boundaryPoints[(i + 1) % _boundaryPoints.length].coordinates;
-
-      final double lat1 = p1.lat * (math.pi / 180);
-      final double lat2 = p2.lat * (math.pi / 180);
-      final double lngDiff = (p2.lng - p1.lng) * (math.pi / 180);
-
-      area += lngDiff * (2 + math.sin(lat1) + math.sin(lat2));
-    }
-
-    area = area * earthRadius * earthRadius / 2.0;
-    return area.abs();
+    return BoundaryService.calculateAreaSqMeters(_boundaryPoints);
   }
 
   void _undo() async {
@@ -447,189 +436,15 @@ class _MapScreenState extends State<MapScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Center drag bar handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AgroZemexTokens.onSurfaceVariant.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AgroZemexTokens.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'ARABLE',
-                              style: AgroZemexTokens.labelCaps.copyWith(
-                                color: AgroZemexTokens.primary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AgroZemexTokens.secondary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'IRRIGATED',
-                              style: AgroZemexTokens.labelCaps.copyWith(
-                                color: AgroZemexTokens.secondary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Icon(
-                        Icons.favorite_border,
-                        color: AgroZemexTokens.onSurfaceVariant,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _boundaryPoints.isNotEmpty
-                        ? 'Boundary Marked Parcel (${_boundaryPoints.length} Points)'
-                        : "Val d'Orcia Estate",
-                    style: AgroZemexTokens.headlineMedium.copyWith(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Siena, Tuscany Region',
-                    style: AgroZemexTokens.bodyLarge.copyWith(
-                      fontSize: 13,
-                      color: AgroZemexTokens.onSurfaceVariant,
-                    ),
+                  AreaStatsPanel(
+                    pointsCount: _boundaryPoints.length,
+                    currentAreaHa: currentAreaHa,
                   ),
                   const SizedBox(height: 16),
-
-                  // Area / Yield / Price Stats Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(
-                        children: [
-                          Text(
-                            'AREA',
-                            style: AgroZemexTokens.labelCaps.copyWith(
-                              fontSize: 10,
-                              color: AgroZemexTokens.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            currentAreaHa > 0
-                                ? '${currentAreaHa.toStringAsFixed(1)} ha'
-                                : '${_boundaryPoints.length} pts',
-                            style: AgroZemexTokens.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          Text(
-                            'YIELD',
-                            style: AgroZemexTokens.labelCaps.copyWith(
-                              fontSize: 10,
-                              color: AgroZemexTokens.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '6.2 t/ha',
-                            style: AgroZemexTokens.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          Text(
-                            'PRICE',
-                            style: AgroZemexTokens.labelCaps.copyWith(
-                              fontSize: 10,
-                              color: AgroZemexTokens.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '€4.2M',
-                            style: AgroZemexTokens.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AgroZemexTokens.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Actions: Undo, Clear, Save
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: _undo,
-                        icon: const Icon(Icons.undo),
-                        tooltip: 'Undo',
-                      ),
-                      IconButton(
-                        onPressed: _clear,
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        tooltip: 'Clear',
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _save,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AgroZemexTokens.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: AgroZemexTokens.radiusEight,
-                            ),
-                          ),
-                          child: Text(
-                            'Save & View Details',
-                            style: AgroZemexTokens.bodyLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  MapActionButtons(
+                    onUndo: _undo,
+                    onClear: _clear,
+                    onSave: _save,
                   ),
                 ],
               ),

@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:agrozemex/features/maps/screens/view_listing_map_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:agrozemex/core/theme/theme.dart';
 import '../services/auth_service.dart';
 
 class SellerDashboard extends StatefulWidget {
@@ -54,16 +54,25 @@ class _SellerDashboardState extends State<SellerDashboard> {
             return Card( 
               elevation: 2,
               margin: const EdgeInsets.symmetric(vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: AgroZemexTokens.radiusTwelve),
               child: ListTile(
-                title: Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
-                subtitle: Text(isActive ? 'Active' : 'Inactive', style: TextStyle(color: isActive ? Colors.green : Colors.red)),
+                title: Text(
+                  title, 
+                  style: AgroZemexTokens.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  isActive ? 'Active' : 'Inactive', 
+                  style: TextStyle(
+                    color: isActive ? AgroZemexTokens.success : AgroZemexTokens.error,
+                  ),
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Switch(
                       value: isActive,
-                      activeThumbColor: Colors.green,
+                      activeThumbColor: AgroZemexTokens.success,
+                      activeTrackColor: AgroZemexTokens.success.withValues(alpha: 0.5),
                       onChanged: (value) async {
                         final auth = Provider.of<AuthService>(context, listen: false);
                         if (auth.user == null || listing['created_by'] != auth.user!.uid) {
@@ -76,7 +85,7 @@ class _SellerDashboardState extends State<SellerDashboard> {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.map, color: Color(0xFF0D47A1)),
+                      icon: const Icon(Icons.map, color: AgroZemexTokens.primary),
                       onPressed: () {
                         Navigator.push(
                           context,

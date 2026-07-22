@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import 'package:agrozemex/core/theme/theme.dart';
 
 import '../models/listing_card_model.dart';
 import '../services/listing_query_service.dart';
@@ -36,6 +37,14 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
   static const double _gridSize = 0.02; 
   final List<_MapCluster> _clusters = [];
   bool _rendered = false;
+
+  @override
+  void dispose() {
+    _polygonManager?.deleteAll().catchError((_) {});
+    _circleManager?.deleteAll().catchError((_) {});
+    _map = null;
+    super.dispose();
+  }
 
   // MAP CREATED
   Future<void> _onMapCreated(mapbox.MapboxMap controller) async {
@@ -115,7 +124,7 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
     await _polygonManager!.create(
       mapbox.PolygonAnnotationOptions(
         geometry: mapbox.Polygon(coordinates: [ring]),
-        fillColor: 0xFF0D47A1,
+        fillColor: AgroZemexTokens.primary.toARGB32(),
         fillOpacity: 0.35,
       ),
     );
@@ -152,7 +161,7 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
           coordinates: mapbox.Position(centerLng, centerLat),
         ),
         circleRadius: (items.length * 4).clamp(18, 40).toDouble(),
-        circleColor: 0xFF0D47A1,
+        circleColor: AgroZemexTokens.primary.toARGB32(),
         circleOpacity: 0.85,
       ),
     );
@@ -184,7 +193,7 @@ class _BuyerMapScreenState extends State<BuyerMapScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nearby Lands'),
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AgroZemexTokens.primary,
         foregroundColor: Colors.white,
       ),
       body: mapbox.MapWidget(

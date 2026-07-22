@@ -34,6 +34,14 @@ abstract class AgroZemexTokens {
   /// On-Primary text color (text/icons on primary Forest Green background).
   static const Color onPrimary = Color(0xFFFFFFFF);
 
+  // Semantic Colors
+  static const Color error = Color(0xFFB3261E);
+  static const Color errorContainer = Color(0xFFF9DEDC);
+  static const Color onErrorContainer = Color(0xFF410E0B);
+  static const Color success = Color(0xFF2E7D32);
+  static const Color successContainer = Color(0xFFE8F5E9);
+  static const Color warning = Color(0xFFE65100);
+
   // ---------------------------------------------------------------------------
   // ✍️ TYPOGRAPHY (Inter)
   // ---------------------------------------------------------------------------
@@ -93,6 +101,11 @@ abstract class AgroZemexTokens {
   static const double roundnessLargeCard = 24.0;
   static final BorderRadius radiusLargeCard = BorderRadius.circular(roundnessLargeCard);
 
+  static const double roundnessTwelve = 12.0;
+  static final BorderRadius radiusTwelve = BorderRadius.circular(roundnessTwelve);
+  static const double roundnessPill = 20.0;
+  static final BorderRadius radiusPill = BorderRadius.circular(roundnessPill);
+
   /// Margins
   static const double marginMobile = 20.0;
   static const double marginDesktop = 40.0;
@@ -113,6 +126,22 @@ abstract class AgroZemexTokens {
       blurRadius: 20.0,
       offset: Offset(0, 4),
       spreadRadius: 0,
+    ),
+  ];
+
+  static const List<BoxShadow> shadowMedium = [
+    BoxShadow(
+      color: Color.fromRGBO(0, 0, 0, 0.06),
+      blurRadius: 12.0,
+      offset: Offset(0, 4),
+    ),
+  ];
+
+  static const List<BoxShadow> shadowLarge = [
+    BoxShadow(
+      color: Color.fromRGBO(0, 0, 0, 0.08),
+      blurRadius: 24.0,
+      offset: Offset(0, 8),
     ),
   ];
 
@@ -139,6 +168,11 @@ abstract class AgroZemexTokens {
         sigmaX: glassBlurSigma,
         sigmaY: glassBlurSigma,
       );
+
+  static bool isDesktop(BuildContext context) =>
+      MediaQuery.of(context).size.width >= 768;
+  static bool isTablet(BuildContext context) =>
+      MediaQuery.of(context).size.width >= 600;
 }
 
 /// Centralized asset path constants for the AgroZemex app.

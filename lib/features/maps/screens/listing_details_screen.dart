@@ -8,6 +8,7 @@ import '../../../shared/services/user_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/services/storage_service.dart';
 import '../../auth/services/auth_service.dart';
+import 'package:agrozemex/core/theme/theme.dart';
 
 class ListingDetailsScreen extends StatefulWidget {
   final List<mapbox.Point> boundaryPoints;
@@ -39,8 +40,8 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   final List<XFile> _pickedImages = [];
   final ImagePicker _picker = ImagePicker();
 
-  static const Color _primaryBlue = Color(0xFF0D47A1);
-  static const Color _accentGreen = Color(0xFF2E7D32);
+  static const Color _primaryBlue = AgroZemexTokens.primary;
+  static const Color _accentGreen = AgroZemexTokens.success;
 
   final List<String> _soilTypes = [
     'Alluvial',
@@ -152,7 +153,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
       appBar: AppBar(
         title: Text(
           'Complete Listing',
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
@@ -180,14 +181,14 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                       const SizedBox(height: 12),
                       Text(
                         'Land Area',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.inter(
                           fontSize: 18,
                           color: Colors.grey[700],
                         ),
                       ),
                       Text(
                         '${widget.areaInSqMeters.toStringAsFixed(2)} sq m',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.inter(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: _primaryBlue,
@@ -256,7 +257,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               // Photo Picker
               Text(
                 'Add Photos * (max 10)',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -267,7 +268,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                 icon: const Icon(Icons.add_photo_alternate),
                 label: Text(
                   'Pick Photos from Gallery',
-                  style: GoogleFonts.poppins(),
+                  style: GoogleFonts.inter(),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primaryBlue,
@@ -352,7 +353,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               SwitchListTile(
                 title: Text(
                   'Road Access',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                 ),
                 value: _roadAccess,
                 activeThumbColor: _accentGreen,
@@ -380,7 +381,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
                             'Submit Listing',
-                            style: GoogleFonts.poppins(
+                            style: GoogleFonts.inter(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,

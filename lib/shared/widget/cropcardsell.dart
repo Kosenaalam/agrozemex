@@ -1,5 +1,6 @@
 import 'package:agrozemex/features/crops/models/crop_card_model.dart';
 import 'package:agrozemex/features/crops/screens/crop_detail_screen.dart';
+import 'package:agrozemex/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -53,7 +54,7 @@ class Cropcardsell extends StatelessWidget {
               const SizedBox(height: 7),
               Text(
                 item.title,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -61,15 +62,15 @@ class Cropcardsell extends StatelessWidget {
               const SizedBox(height: 5),
               Text(
                  '₹ ${item.price.toStringAsFixed(0)} / ${item.unit}',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   fontSize: 15,
-                  color: const Color(0xFF2E7D32),
+                  color: AgroZemexTokens.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
                Text(
                 '${item.quantity.toStringAsFixed(2)} ${item.unit}',
-                style: GoogleFonts.poppins(fontSize: 13),
+                style: GoogleFonts.inter(fontSize: 13),
               ),
             ],
           ),

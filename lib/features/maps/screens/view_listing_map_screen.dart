@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import 'package:agrozemex/core/theme/theme.dart';
 
 class ViewListingMapScreen extends StatefulWidget {
   final String listingId;
@@ -24,6 +25,14 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
   void initState() {
     super.initState();
     _fetchListing();
+  }
+
+  @override
+  void dispose() {
+    _polygonManager?.deleteAll().catchError((_) {});
+    _circleManager?.deleteAll().catchError((_) {});
+    _mapController = null;
+    super.dispose();
   }
 
 
@@ -92,7 +101,7 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
       await _circleManager?.create(
         mapbox.CircleAnnotationOptions(
           geometry: point,
-          circleColor: 0xFF0D47A1,
+          circleColor: AgroZemexTokens.primary.toARGB32(),
           circleRadius: 8.0,
         ),
       );
@@ -107,7 +116,7 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
       await _polygonManager?.create(
         mapbox.PolygonAnnotationOptions(
           geometry: mapbox.Polygon(coordinates: [ring]),
-          fillColor: 0xFF0D47A1,
+          fillColor: AgroZemexTokens.primary.toARGB32(),
           fillOpacity: 0.28,
         ),
       );
@@ -156,7 +165,7 @@ class _ViewListingMapScreenState extends State<ViewListingMapScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('View Listing on Map'),
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AgroZemexTokens.primary,
       ),
       body: mapbox.MapWidget(
         styleUri: mapbox.MapboxStyles.SATELLITE_STREETS,

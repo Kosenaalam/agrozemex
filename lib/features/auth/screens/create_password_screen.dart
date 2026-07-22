@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+import 'package:agrozemex/core/theme/theme.dart';
 
 class CreatePasswordScreen extends StatefulWidget {
   final String email;
@@ -34,9 +35,9 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
       appBar: AppBar(
         title: Text(
           widget.isLogin ? 'Sign In' : 'Create Password',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AgroZemexTokens.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -48,10 +49,10 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
             children: [
               Text(
                 widget.isLogin ? 'Enter password' : 'Set your password',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0D47A1),
+                  color: AgroZemexTokens.primary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -59,7 +60,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                 widget.isLogin
                     ? 'Enter your password for ${widget.email} to sign in.'
                     : 'Create a strong password for ${widget.email} to secure your account.',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   fontSize: 14,
                   color: Colors.grey[600],
                 ),
@@ -71,7 +72,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                   decoration: BoxDecoration(
                     color: Colors.red[50],
                     border: Border.all(color: Colors.red[200]!),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AgroZemexTokens.radiusTwelve,
                   ),
                   child: Row(
                     children: [
@@ -80,7 +81,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.inter(
                             color: Colors.red[800],
                             fontSize: 13,
                           ),
@@ -98,7 +99,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                   labelText: 'Password',
                   prefixIcon: const Icon(
                     Icons.lock_outline,
-                    color: Color(0xFF0D47A1),
+                    color: AgroZemexTokens.primary,
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -109,17 +110,17 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                         setState(() => _obscurePass = !_obscurePass),
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AgroZemexTokens.radiusTwelve,
                     borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AgroZemexTokens.radiusTwelve,
                     borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AgroZemexTokens.radiusTwelve,
                     borderSide: const BorderSide(
-                      color: Color(0xFF0D47A1),
+                      color: AgroZemexTokens.primary,
                       width: 2,
                     ),
                   ),
@@ -154,8 +155,8 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                     },
                     child: Text(
                       'Forgot Password? / Login with OTP',
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF0D47A1),
+                      style: GoogleFonts.inter(
+                        color: AgroZemexTokens.primary,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -172,7 +173,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                     labelText: 'Confirm Password',
                     prefixIcon: const Icon(
                       Icons.lock_outline,
-                      color: Color(0xFF0D47A1),
+                      color: AgroZemexTokens.primary,
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -186,17 +187,17 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                       ),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AgroZemexTokens.radiusTwelve,
                       borderSide: BorderSide(color: Colors.grey[300]!),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AgroZemexTokens.radiusTwelve,
                       borderSide: BorderSide(color: Colors.grey[300]!),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AgroZemexTokens.radiusTwelve,
                       borderSide: const BorderSide(
-                        color: Color(0xFF0D47A1),
+                        color: AgroZemexTokens.primary,
                         width: 2,
                       ),
                     ),
@@ -282,16 +283,16 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D47A1),
+                          backgroundColor: AgroZemexTokens.primary,
                           foregroundColor: Colors.white,
                           elevation: 2,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: AgroZemexTokens.radiusTwelve,
                           ),
                         ),
                         child: Text(
                           widget.isLogin ? 'Login & Continue' : 'Register & Continue',
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),

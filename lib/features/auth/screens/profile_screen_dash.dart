@@ -8,6 +8,9 @@ import 'package:agrozemex/features/auth/screens/seller_dashboard.dart';
 import 'package:agrozemex/features/wishlist/screens/wishlist_screen.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
 import '../services/auth_service.dart';
+import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
+import 'package:agrozemex/shared/services/wishlist_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreenDash extends StatefulWidget {
   const ProfileScreenDash({super.key});
@@ -268,13 +271,22 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  '4',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: AgroZemexTokens.primary,
-                                  ),
+                                StreamBuilder<QuerySnapshot>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('listings')
+                                      .where('created_by', isEqualTo: auth.user?.uid)
+                                      .snapshots(),
+                                  builder: (context, snapshot) {
+                                    final count = snapshot.data?.docs.length ?? 0;
+                                    return Text(
+                                      '$count',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: AgroZemexTokens.primary,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -302,13 +314,19 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  '12',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: AgroZemexTokens.primary,
-                                  ),
+                                StreamBuilder<List<String>>(
+                                  stream: WishlistService().getWishlistIds(uid: auth.user?.uid ?? ''),
+                                  builder: (context, snapshot) {
+                                    final count = snapshot.data?.length ?? 0;
+                                    return Text(
+                                      '$count',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: AgroZemexTokens.primary,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -384,7 +402,11 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                         ),
                         TextButton(
                           onPressed: () {
-                            // Add New Action
+                            final shell = MainNavigationShell.of(context);
+                            if (shell != null) {
+                              shell.switchTab(2); // Sell Land tab
+                            }
+                            Navigator.popUntil(context, (route) => route.isFirst);
                           },
                           child: Text(
                             'ADD NEW',

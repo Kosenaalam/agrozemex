@@ -67,12 +67,29 @@ class WishlistScreen extends StatelessWidget {
     final uid = auth.user?.uid ?? '';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Wishlist')),
+      appBar: AppBar(
+        title: Text(
+          'My Wishlist',
+          style: AgroZemexTokens.headlineMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: AgroZemexTokens.primary,
+        elevation: 0,
+      ),
       body: StreamBuilder<List<String>>(
         stream: wishlistService.getWishlistIds(uid: uid),
         builder: (context, snapshot) {
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No wishlist items'));
+            return Center(
+              child: Text(
+                'No wishlist items',
+                style: AgroZemexTokens.bodyLarge.copyWith(
+                  color: AgroZemexTokens.onSurfaceVariant,
+                ),
+              ),
+            );
           }
 
           return StreamBuilder<List<DocumentSnapshot>>(
@@ -96,9 +113,10 @@ class WishlistScreen extends StatelessWidget {
                   final data = doc.data() as Map<String, dynamic>;
 
                   return Card(
-                    elevation: 5,
+                    elevation: 2,
+                    shadowColor: Colors.black.withValues(alpha: 0.05),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AgroZemexTokens.radiusTwelve,
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(
@@ -148,14 +166,13 @@ class WishlistScreen extends StatelessWidget {
 
                           Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.all(14),
+                              padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     data['title'] ?? 'Untitled Property',
-                                    style: const TextStyle(
-                                      fontSize: 15.5,
+                                    style: AgroZemexTokens.bodyMedium.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
                                     maxLines: 2,
@@ -164,18 +181,17 @@ class WishlistScreen extends StatelessWidget {
                                   const Spacer(),
                                   Text(
                                     '₹ ${data['price']}',
-                                    style: const TextStyle(
-                                      fontSize: 16.5,
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.w700,
+                                    style: AgroZemexTokens.bodyLarge.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AgroZemexTokens.primary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${(data['area_sq_m'] as num?)?.toStringAsFixed(2) ?? 0} sq m',
-                                    style: TextStyle(
-                                      fontSize: 13.5,
-                                      color: Colors.grey[600],
+                                    '${(data['area_sq_m'] as num?)?.toStringAsFixed(1) ?? 0} sq m',
+                                    style: AgroZemexTokens.labelCaps.copyWith(
+                                      fontSize: 10,
+                                      color: AgroZemexTokens.onSurfaceVariant,
                                     ),
                                   ),
                                 ],

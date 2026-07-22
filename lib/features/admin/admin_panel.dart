@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:agrozemex/core/theme/theme.dart';
 
 class AdminPanel extends StatelessWidget {
   const AdminPanel({super.key});
@@ -10,7 +10,7 @@ class AdminPanel extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Panel'),
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AgroZemexTokens.primary,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('listings').snapshots(),
@@ -36,10 +36,15 @@ class AdminPanel extends StatelessWidget {
               final isActive = listing['is_active'] as bool? ?? true;
 
               return ListTile(
-                title: Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                title: Text(
+                  title, 
+                  style: AgroZemexTokens.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                ),
                 subtitle: Text('Price: ₹$price | Created: $createdAt | By: $createdBy'),
                 trailing: Switch(
                   value: isActive,
+                  activeThumbColor: AgroZemexTokens.success,
+                  activeTrackColor: AgroZemexTokens.success.withValues(alpha: 0.5),
                   onChanged: (value) async {
                     await FirebaseFirestore.instance.collection('listings').doc(id).update({'is_active': value});
                   },
