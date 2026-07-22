@@ -1,17 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class WishlistService {
-  final _db = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
 
-  Future<void> toggleWishlist(String listingId) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+  WishlistService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
+
+  Future<void> toggleWishlist(String listingId, {required String uid}) async {
+    if (uid.isEmpty) return;
 
     final ref = _db
         .collection('users')
-        .doc(user.uid)
+        .doc(uid)
         .collection('wishlist')
         .doc(listingId);
 
@@ -26,25 +25,23 @@ class WishlistService {
     }
   }
 
-  Stream<bool> isWishlisted(String listingId) {
-    final user = _auth.currentUser;
-    if (user == null) return Stream.value(false);
+  Stream<bool> isWishlisted(String listingId, {required String uid}) {
+    if (uid.isEmpty) return Stream.value(false);
 
     return _db
         .collection('users')
-        .doc(user.uid)
+        .doc(uid)
         .collection('wishlist')
         .doc(listingId)
         .snapshots()
         .map((doc) => doc.exists);
   }
 
-  Stream<List<String>> getWishlistIds() {
-    final user = _auth.currentUser;
-    if (user == null) return Stream.value([]);
+  Stream<List<String>> getWishlistIds({required String uid}) {
+    if (uid.isEmpty) return Stream.value([]);
     return _db
         .collection('users')
-        .doc(user.uid)
+        .doc(uid)
         .collection('wishlist')
         .snapshots()
         .map((snap) => snap.docs.map((d) => d.id).toList());

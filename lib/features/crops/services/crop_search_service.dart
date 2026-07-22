@@ -1,6 +1,6 @@
 
 class CropSearchService {
-  List<String> buildSearchTokens({
+  static List<String> buildSearchTokens({
     required String title,
     required String description,
     required String cropType,

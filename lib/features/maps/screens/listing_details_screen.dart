@@ -7,6 +7,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import '../../../shared/services/user_firestore_service.dart';
 import 'package:provider/provider.dart';
 import '../../../shared/services/storage_service.dart';
+import '../../auth/services/auth_service.dart';
 
 class ListingDetailsScreen extends StatefulWidget {
   final List<mapbox.Point> boundaryPoints;
@@ -92,9 +93,12 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         final imageUrls = await storageService.uploadListingImages(files);
 
         if (!mounted) return;
+        final auth = context.read<AuthService>();
+        if (auth.user == null) throw Exception('User not logged in');
         final firestoreService = context.read<UserFirestoreService>();
 
         await firestoreService.saveLandListing(
+          uid: auth.user!.uid,
           title: _titleController.text,
           price: double.parse(_priceController.text.replaceAll(',', '')),
           description: _descriptionController.text,

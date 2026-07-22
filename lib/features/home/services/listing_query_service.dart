@@ -5,12 +5,24 @@ import '../models/listing_filter_model.dart';
 import '../models/listing_card_model.dart';
 import '../../../shared/services/distance_service.dart';
 import '../../../shared/services/location_service.dart';
+import '../../../shared/services/search_token_service.dart';
 import 'search_rank_service.dart';
 
 class ListingQueryService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final DistanceService _distanceService = DistanceService();
-  final SearchRankService _searchRankService = SearchRankService();
+  final FirebaseFirestore _db;
+  final DistanceService _distanceService;
+  final SearchRankService _searchRankService;
+  final LocationService _locationService;
+
+  ListingQueryService({
+    FirebaseFirestore? db,
+    DistanceService? distanceService,
+    SearchRankService? searchRankService,
+    LocationService? locationService,
+  })  : _db = db ?? FirebaseFirestore.instance,
+        _distanceService = distanceService ?? DistanceService(),
+        _searchRankService = searchRankService ?? SearchRankService(),
+        _locationService = locationService ?? LocationService();
 
   // PERF FIX: Reduced from 50 to 15. Loading 50 docs + running polygon distance
   // calculation on each caused significant main-thread work on every page fetch.
@@ -22,41 +34,13 @@ class ListingQueryService {
   ListingFilterModel _lastFilter = ListingFilterModel.empty;
 
   
-  final Map<String, List<String>> _synonyms = {
-    'road': ['road', 'highway', 'street', 'pathway', 'lane'],
-    'village': ['village', 'gaon', 'gram', 'pind'], 
-    'tehsil': ['tehsil', 'taluka', 'mandal', 'block'], 
-    'farm': ['farm', 'khet', 'land', 'plot', 'acreage'],
-    'water': ['water', 'paani', 'irrigation', 'borewell'],
-  };
-
-  String normalize(String input) {
-    String normalized = input.toLowerCase().trim();
-    normalized = normalized.replaceAll(RegExp(r'[^a-z0-9 ]'), ''); 
-    normalized = normalized.replaceAll('st.', 'street').replaceAll('hwy', 'highway');
-    if (normalized.endsWith('pur') || normalized.endsWith('nagar')) {
-      normalized = normalized.replaceAll('pur', 'pur').replaceAll('nagar', 'nagar'); 
-    }
-    return normalized;
-  }
-
- 
-  List<String> expandWithSynonyms(String token) {
-    for (final entry in _synonyms.entries) {
-      if (entry.value.contains(token)) {
-        return entry.value; 
-      }
-    }
-    return [token]; 
-  }
-
   List<String> _getSearchTokens(String query) {
     if (query.isEmpty) return [];
-    final normalizedQuery = normalize(query);
+    final normalizedQuery = SearchTokenService.normalize(query);
     final tokens = normalizedQuery.split(' ').where((e) => e.length > 2).toList();
     final expanded = <String>{};
     for (final token in tokens) {
-      expanded.addAll(expandWithSynonyms(token));
+      expanded.addAll(SearchTokenService.expandWithSynonyms(token));
     }
     final uniqueList = expanded.toList();
     return uniqueList.length > 10 ? uniqueList.sublist(0, 10) : uniqueList;
@@ -121,10 +105,7 @@ class ListingQueryService {
     required double maxLng,
     int limit = 50,
   }) async {
-    // PERF FIX: Use the LocationService singleton instead of creating a new instance.
-    // LocationService() is a singleton factory, so this is correct, but explicit
-    // comments prevent future developers from replacing it with Geolocator directly.
-    final Position? position = LocationService().currentPosition;
+    final Position? position = _locationService.currentPosition;
 
     // Filter latitude bounds on Firestore, and longitude bounds in-memory
     // to avoid Firestore compound inequality bad-filter crashes.
@@ -166,16 +147,22 @@ class ListingQueryService {
 
     if (!_hasMore) return [];
 
-    // PERF FIX: Use the LocationService singleton. It's already a singleton via
-    // factory constructor so LocationService() returns the same instance, but
-    // this comment makes the intent explicit.
-    final Position? position = LocationService().currentPosition;
+    final Position? position = _locationService.currentPosition;
     final searchTokens = _getSearchTokens(searchQuery);
+
+    final hasInMemoryFilters = filter.roadAccess != null ||
+        filter.soilType != null ||
+        filter.waterSource != null ||
+        filter.minAreaSqM != null ||
+        filter.maxAreaSqM != null ||
+        filter.village != null;
+
+    final limit = hasInMemoryFilters ? pageSize * 2 : pageSize;
 
     Query query = _db
         .collection('listings')
         .orderBy('created_at', descending: true)
-        .limit(pageSize);
+        .limit(limit);
 
     if (searchTokens.isNotEmpty) {
       query = query.where('search_tokens', arrayContainsAny: searchTokens);
@@ -189,8 +176,8 @@ class ListingQueryService {
     }
 
     final snapshot = await query.get();
+    _hasMore = snapshot.docs.length >= limit;
     if (snapshot.docs.isEmpty) {
-      _hasMore = false;
       return [];
     }
 

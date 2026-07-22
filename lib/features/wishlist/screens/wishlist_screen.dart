@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/home/screens/listing_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -5,28 +6,77 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agrozemex/shared/services/wishlist_service.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:provider/provider.dart';
+import '../../auth/services/auth_service.dart';
 
 class WishlistScreen extends StatelessWidget {
   const WishlistScreen({super.key});
 
+  Stream<List<DocumentSnapshot>> _combineWishlistStreams(List<String> ids) {
+    if (ids.isEmpty) return Stream.value([]);
+
+    final chunks = <List<String>>[];
+    for (var i = 0; i < ids.length; i += 10) {
+      chunks.add(ids.sublist(i, (i + 10).clamp(0, ids.length)));
+    }
+
+    final controller = StreamController<List<DocumentSnapshot>>();
+    final subscriptions = <StreamSubscription<QuerySnapshot>>[];
+    final lastSnapshots = <int, List<DocumentSnapshot>>{};
+
+    void emitCombined() {
+      if (controller.isClosed) return;
+      final allDocs = <DocumentSnapshot>[];
+      for (int i = 0; i < chunks.length; i++) {
+        if (lastSnapshots.containsKey(i)) {
+          allDocs.addAll(lastSnapshots[i]!);
+        }
+      }
+      controller.add(allDocs);
+    }
+
+    for (int i = 0; i < chunks.length; i++) {
+      final sub = FirebaseFirestore.instance
+          .collection('listings')
+          .where(FieldPath.documentId, whereIn: chunks[i])
+          .snapshots()
+          .listen((snap) {
+        lastSnapshots[i] = snap.docs;
+        emitCombined();
+      }, onError: (err) {
+        if (!controller.isClosed) {
+          controller.addError(err);
+        }
+      });
+      subscriptions.add(sub);
+    }
+
+    controller.onCancel = () {
+      for (final sub in subscriptions) {
+        sub.cancel();
+      }
+      controller.close();
+    };
+
+    return controller.stream;
+  }
+
   @override
   Widget build(BuildContext context) {
     final wishlistService = context.read<WishlistService>();
+    final auth = context.read<AuthService>();
+    final uid = auth.user?.uid ?? '';
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Wishlist')),
       body: StreamBuilder<List<String>>(
-        stream: wishlistService.getWishlistIds(),
+        stream: wishlistService.getWishlistIds(uid: uid),
         builder: (context, snapshot) {
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('No wishlist items'));
           }
 
-          return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('listings')
-                .where(FieldPath.documentId, whereIn: snapshot.data!)
-                .snapshots(),
+          return StreamBuilder<List<DocumentSnapshot>>(
+            stream: _combineWishlistStreams(snapshot.data!),
             builder: (context, snap) {
               if (!snap.hasData) {
                 return const Center(child: CircularProgressIndicator());
@@ -40,9 +90,9 @@ class WishlistScreen extends StatelessWidget {
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
-                itemCount: snap.data!.docs.length,
+                itemCount: snap.data!.length,
                 itemBuilder: (context, index) {
-                  final doc = snap.data!.docs[index];
+                  final doc = snap.data![index];
                   final data = doc.data() as Map<String, dynamic>;
 
                   return Card(

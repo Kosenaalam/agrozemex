@@ -8,6 +8,8 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/shared/services/wishlist_service.dart';
+import 'package:provider/provider.dart';
+import '../../auth/services/auth_service.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final String listingId;
@@ -39,7 +41,6 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   mapbox.PolygonAnnotationManager? _polygonManager;
   mapbox.PolylineAnnotationManager? _outlineManager;
 
-  final WishlistService _wishlistService = WishlistService();
   Uint8List? _blueCircleIcon;
 
   @override
@@ -193,6 +194,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final wishlistService = context.read<WishlistService>();
+    final auth = context.read<AuthService>();
+    final uid = auth.user?.uid ?? '';
+
     final double areaHa = widget.areaInSqMeters / 10000.0;
     final String mainPhoto = widget.photoPaths.isNotEmpty
         ? widget.photoPaths.first
@@ -227,7 +232,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               centerTitle: true,
               actions: [
                 StreamBuilder<bool>(
-                  stream: _wishlistService.isWishlisted(widget.listingId),
+                  stream: wishlistService.isWishlisted(widget.listingId, uid: uid),
                   builder: (context, snapshot) {
                     final isFav = snapshot.data ?? false;
                     return IconButton(
@@ -236,7 +241,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         color: isFav ? Colors.red : AgroZemexTokens.primary,
                       ),
                       onPressed: () =>
-                          _wishlistService.toggleWishlist(widget.listingId),
+                          wishlistService.toggleWishlist(widget.listingId, uid: uid),
                     );
                   },
                 ),

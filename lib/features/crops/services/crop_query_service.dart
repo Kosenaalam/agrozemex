@@ -2,9 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/crop_card_model.dart';
 
 class CropQueryService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db;
   DocumentSnapshot? _lastDoc;
   static const _pageSize = 10; 
+  bool _hasMore = true;
+
+  bool get hasMore => _hasMore;
+
+  CropQueryService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   Future<List<CropCardModel>> fetchNextPage({
     String? searchQuery,
@@ -13,10 +18,15 @@ class CropQueryService {
     double? maxPrice,
     String? village, 
   }) async {
+    if (!_hasMore) return [];
+
+    final hasInMemoryFilters = minPrice != null || maxPrice != null;
+    final limit = hasInMemoryFilters ? _pageSize * 2 : _pageSize;
+
     var query = _db.collection('crops')
         .where('is_active', isEqualTo: true)
         .orderBy('created_at', descending: true)
-        .limit(_pageSize);
+        .limit(limit);
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       query = query.where('search_tokens', arrayContains: searchQuery.toLowerCase());
@@ -35,6 +45,7 @@ class CropQueryService {
     }
 
     final snap = await query.get();
+    _hasMore = snap.docs.length >= limit;
     if (snap.docs.isEmpty) return [];
 
     _lastDoc = snap.docs.last;
@@ -52,5 +63,6 @@ class CropQueryService {
 
   void resetPagination() {
     _lastDoc = null;
+    _hasMore = true;
   }
 }

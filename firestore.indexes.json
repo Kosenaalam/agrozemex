@@ -1,0 +1,46 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "crops",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "crops",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "search_tokens", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "crops",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "crop_type", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "search_tokens", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "center_lat", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

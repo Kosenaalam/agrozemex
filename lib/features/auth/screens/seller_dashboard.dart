@@ -5,17 +5,30 @@ import 'package:agrozemex/features/maps/screens/view_listing_map_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
-class SellerDashboard extends StatelessWidget {
+class SellerDashboard extends StatefulWidget {
   final String userId;
   const SellerDashboard({super.key, required this.userId});
 
   @override
+  State<SellerDashboard> createState() => _SellerDashboardState();
+}
+
+class _SellerDashboardState extends State<SellerDashboard> {
+  late Stream<QuerySnapshot> _listingsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _listingsStream = FirebaseFirestore.instance
+        .collection('listings')
+        .where('created_by', isEqualTo: widget.userId)
+        .snapshots();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>( 
-      stream: FirebaseFirestore.instance
-          .collection('listings')
-          .where('created_by', isEqualTo: userId)
-          .snapshots(),
+    return StreamBuilder<QuerySnapshot>(
+      stream: _listingsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

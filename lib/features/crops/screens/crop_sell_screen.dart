@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/shared/services/storage_service.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
+import 'package:agrozemex/features/auth/services/auth_service.dart';
 
 class CropSellScreen extends StatefulWidget {
   const CropSellScreen({super.key});
@@ -132,9 +133,12 @@ class _CropSellScreenState extends State<CropSellScreen> {
         final storageService = context.read<StorageService>();
         final files = _pickedImages.map((e) => File(e.path)).toList();
         final imageUrls = await storageService.uploadListingImages(files);
-        if (!mounted) return;
+         if (!mounted) return;
+         final auth = context.read<AuthService>();
+        if (auth.user == null) throw Exception('User not logged in');
         final firestoreService = context.read<UserFirestoreService>();
         await firestoreService.saveCropListing(
+          uid: auth.user!.uid,
           title: _titleController.text,
           price: double.parse(_priceController.text),
           description: _descriptionController.text,

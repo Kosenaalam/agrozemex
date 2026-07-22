@@ -153,14 +153,11 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
       if (!mounted) return;
 
       setState(() {
-        if (newListings.isEmpty) {
-          _hasMore = false;
-        } else {
-          final existingIds = _listings.map((e) => e.id).toSet();
-          final uniqueNew =
-              newListings.where((e) => !existingIds.contains(e.id)).toList();
-          _listings.addAll(uniqueNew);
-        }
+        _hasMore = service.hasMore;
+        final existingIds = _listings.map((e) => e.id).toSet();
+        final uniqueNew =
+            newListings.where((e) => !existingIds.contains(e.id)).toList();
+        _listings.addAll(uniqueNew);
       });
     } catch (e) {
       debugPrint('Crop load error. please check internet connection');

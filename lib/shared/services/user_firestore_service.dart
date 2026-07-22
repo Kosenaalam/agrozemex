@@ -2,50 +2,11 @@ import 'package:agrozemex/features/crops/services/crop_search_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import 'search_token_service.dart';
 
 class UserFirestoreService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-
-  final Map<String, List<String>> _synonyms = {
-    'road': ['road', 'highway', 'street', 'pathway', 'lane'],
-    'village': ['village', 'gaon', 'gram', 'pind'],
-    'tehsil': ['tehsil', 'taluka', 'mandal', 'block'],
-    'farm': ['farm', 'khet', 'land', 'plot', 'acreage'],
-    'water': ['water', 'paani', 'irrigation', 'borewell'],
-  };
-
-  String normalize(String input) {
-    String normalized = input.toLowerCase().trim();
-    normalized = normalized.replaceAll(RegExp(r'[^a-z0-9 ]'), '');
-    normalized = normalized
-        .replaceAll('st.', 'street')
-        .replaceAll('hwy', 'highway');
-    if (normalized.endsWith('pur') || normalized.endsWith('nagar')) {
-      normalized = normalized
-          .replaceAll('pur', 'pur')
-          .replaceAll('nagar', 'nagar');
-    }
-    return normalized;
-  }
-
-  List<String> expandWithSynonyms(String token) {
-    for (final entry in _synonyms.entries) {
-      if (entry.value.contains(token)) {
-        return entry.value;
-      }
-    }
-    return [token];
-  }
-
-  List<String> generateNGrams(String term, {int minLength = 3}) {
-    final normalized = normalize(term);
-    if (normalized.length < minLength) return [normalized];
-    final ngrams = <String>[];
-    for (int i = minLength; i <= normalized.length; i++) {
-      ngrams.add(normalized.substring(0, i));
-    }
-    return ngrams;
-  }
+  final FirebaseFirestore _db;
+  UserFirestoreService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   Future<void> createUserIfNotExists(User user) async {
     final ref = _db.collection('users').doc(user.uid);
@@ -98,7 +59,7 @@ class UserFirestoreService {
 
     final combinedText = fields.where((f) => f.isNotEmpty).join(' ');
 
-    final String normalized = normalize(combinedText);
+    final String normalized = SearchTokenService.normalize(combinedText);
 
     final List<String> tokens = normalized
         .split(' ')
@@ -109,14 +70,15 @@ class UserFirestoreService {
     final expandedTokens = <String>{};
     for (final token in tokens) {
       expandedTokens.add(token);
-      expandedTokens.addAll(expandWithSynonyms(token));
-      expandedTokens.addAll(generateNGrams(token));
+      expandedTokens.addAll(SearchTokenService.expandWithSynonyms(token));
+      expandedTokens.addAll(SearchTokenService.generateNGrams(token));
     }
 
     return expandedTokens.toList();
   }
 
   Future<void> saveLandListing({
+    required String uid,
     required String title,
     required double price,
     required String description,
@@ -128,9 +90,6 @@ class UserFirestoreService {
     required bool roadAccess,
     required String village,
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception('User not logged in');
-
     final searchTokens = _buildSearchTokens(
       title: title,
       description: description,
@@ -162,7 +121,7 @@ class UserFirestoreService {
       'road_access': roadAccess,
       'photo_paths': photoPaths,
       'village': village,
-      'created_by': user.uid,
+      'created_by': uid,
       'created_at': FieldValue.serverTimestamp(),
       'boundary_points': boundaryPoints
           .map((p) => {'lat': p.coordinates.lat, 'lng': p.coordinates.lng})
@@ -172,7 +131,7 @@ class UserFirestoreService {
       'center_lat': centerLat,
       'center_lng': centerLng,
     });
-    final userDoc = _db.collection('users').doc(user.uid);
+    final userDoc = _db.collection('users').doc(uid);
     final userSnap = await userDoc.get();
     if (userSnap.exists && userSnap.data()!['role'] == 'buyer') {
       await userDoc.update({'role': 'seller'});
@@ -180,6 +139,7 @@ class UserFirestoreService {
   }
 
   Future<void> saveCropListing({
+    required String uid,
     required String title,
     required double price,
     required String description,
@@ -190,10 +150,7 @@ class UserFirestoreService {
     required String village,
     required GeoPoint location,
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception('User not logged in');
-
-    final searchTokens = CropSearchService().buildSearchTokens(
+    final searchTokens = CropSearchService.buildSearchTokens(
       title: title,
       description: description,
       cropType: cropType,
@@ -210,13 +167,13 @@ class UserFirestoreService {
       'unit': unit,
       'village': village,
       'location': location,
-      'created_by': user.uid,
+      'created_by': uid,
       'created_at': FieldValue.serverTimestamp(),
       'search_tokens': searchTokens,
       'is_active': true,
     });
 
-    final userDoc = _db.collection('users').doc(user.uid);
+    final userDoc = _db.collection('users').doc(uid);
     final userSnap = await userDoc.get();
     if (userSnap.exists && userSnap.data()!['role'] == 'buyer') {
       await userDoc.update({'role': 'seller'});
