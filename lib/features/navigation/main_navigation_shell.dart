@@ -56,9 +56,15 @@ class MainNavigationShellState extends State<MainNavigationShell> {
   void _onTabSelected(int index) {
     final auth = Provider.of<AuthService>(context, listen: false);
 
-    // Protected routes auth checks: Sell Land (2), Sell Crops (3)
-    if ((index == 2 || index == 3) && auth.user == null) {
-      final label = index == 2 ? 'sell land' : 'sell crops';
+    // Protected routes: Sell Land (2), Sell Crops (3), Profile (4)
+    // Unauthenticated users are redirected to LoginScreen via push,
+    // giving a consistent UX instead of rendering LoginScreen embedded in the tab body.
+    if ((index == 2 || index == 3 || index == 4) && auth.user == null) {
+      final label = index == 2
+          ? 'sell land'
+          : index == 3
+              ? 'sell crops'
+              : 'view your profile';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please log in to $label.')),
       );

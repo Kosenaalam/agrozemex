@@ -10,7 +10,7 @@ abstract class AgroZemexTheme {
       useMaterial3: true,
       primaryColor: AgroZemexTokens.primary,
       scaffoldBackgroundColor: AgroZemexTokens.surface,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: AgroZemexTokens.primary,
         onPrimary: AgroZemexTokens.onPrimary,
         surface: AgroZemexTokens.surface,
@@ -52,7 +52,7 @@ abstract class AgroZemexTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: AgroZemexTokens.radiusEight,
-          borderSide: BorderSide(color: AgroZemexTokens.surfaceContainerLow),
+          borderSide: const BorderSide(color: AgroZemexTokens.surfaceContainerLow),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AgroZemexTokens.radiusEight,

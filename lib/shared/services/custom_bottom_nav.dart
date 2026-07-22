@@ -1,20 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 
 import 'package:agrozemex/core/theme/theme.dart';
-import 'package:agrozemex/features/auth/screens/login_screen.dart';
-import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
-import 'package:agrozemex/features/auth/services/auth_service.dart';
-import 'package:agrozemex/features/crops/screens/crop_home_screen.dart';
-import 'package:agrozemex/features/crops/screens/crop_sell_screen.dart';
-import 'package:agrozemex/features/home/screens/home_screen.dart';
-import 'package:agrozemex/features/maps/screens/map_screen.dart';
 import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 
 /// Modernized AgroZemex Bottom Navigation Bar strictly adhering to AgroZemexTokens.
-/// Supports zero-push tab switching via [onTap] callback when mounted in [MainNavigationShell],
-/// with a robust fallback for standalone routes.
+/// Supports zero-push tab switching via [onTap] callback when mounted in [MainNavigationShell].
+///
+/// MUST always be used inside [MainNavigationShell] or provided an [onTap] callback.
 class CustomBottomNav extends StatelessWidget {
   const CustomBottomNav({
     super.key,
@@ -41,52 +34,20 @@ class CustomBottomNav extends StatelessWidget {
       return;
     }
 
-    // Check if parent shell exists
+    // Check if parent shell exists and delegate
     final shell = MainNavigationShell.of(context);
     if (shell != null) {
       shell.switchTab(index);
       return;
     }
 
-    // Fallback for standalone routes outside MainNavigationShell
-    final auth = Provider.of<AuthService>(context, listen: false);
-
-    if ((index == 2 || index == 3) && auth.user == null) {
-      final label = index == 2 ? 'sell land' : 'sell crops';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please log in to $label.')),
-      );
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-      return;
-    }
-
-    Widget targetScreen;
-    switch (index) {
-      case 0:
-        targetScreen = const HomeScreen();
-        break;
-      case 1:
-        targetScreen = const CropHomeScreen();
-        break;
-      case 2:
-        targetScreen = const MapScreen();
-        break;
-      case 3:
-        targetScreen = const CropSellScreen();
-        break;
-      case 4:
-        targetScreen = const ProfileScreenDash();
-        break;
-      default:
-        targetScreen = const HomeScreen();
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => targetScreen),
+    // CustomBottomNav must always be inside MainNavigationShell or given an onTap callback.
+    // The old Navigator.pushReplacement fallback was dead code that created orphaned screen
+    // instances and lost all tab state — removed intentionally.
+    assert(
+      false,
+      'CustomBottomNav._handleTap: no onTap callback and no MainNavigationShell ancestor found. '
+      'Ensure CustomBottomNav is always mounted within MainNavigationShell.',
     );
   }
 

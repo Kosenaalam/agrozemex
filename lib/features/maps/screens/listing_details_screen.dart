@@ -113,8 +113,8 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Listing saved successfully'),
+          const SnackBar(
+            content: Text('Listing saved successfully'),
             backgroundColor: _accentGreen,
           ),
         );
@@ -177,7 +177,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(Icons.square_foot, size: 40, color: _primaryBlue),
+                      const Icon(Icons.square_foot, size: 40, color: _primaryBlue),
                       const SizedBox(height: 12),
                       Text(
                         'Land Area',
@@ -231,11 +231,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
               TextFormField(
                 controller: _villageController,
                 maxLength: 15,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Village Name',
                   prefixIcon: Icon(Icons.location_city),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                 ),
                 validator: (v) => v?.isEmpty == true ? 'Required' : null,

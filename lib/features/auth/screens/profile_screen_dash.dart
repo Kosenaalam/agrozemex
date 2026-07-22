@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:agrozemex/core/theme/theme.dart';
-import 'package:agrozemex/features/auth/screens/login_screen.dart'; 
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/screens/seller_dashboard.dart';
 import 'package:agrozemex/features/wishlist/screens/wishlist_screen.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
@@ -77,13 +77,11 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                     IconButton( 
                       icon: const Icon(Icons.logout, color: AgroZemexTokens.onSurfaceVariant),
                       onPressed: () async {
+                        // Logout via AuthService. The authStateChanges() stream will emit
+                        // null → AuthService.user becomes null → notifyListeners() →
+                        // the shell's auth guard (index 4) redirects to LoginScreen automatically.
+                        // No manual Navigator push needed.
                         await auth.logout();
-                        if (context.mounted) {
-                          Navigator.pushReplacement( 
-                            context,
-                            MaterialPageRoute(builder: (_) => const LoginScreen()),
-                          );
-                        }
                       },
                     ),
                     const SizedBox(width: 8),
@@ -200,7 +198,7 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Divider(color: AgroZemexTokens.surfaceContainerLow),
+                          const Divider(color: AgroZemexTokens.surfaceContainerLow),
                           const SizedBox(height: 8),
                           Row(
                             children: [

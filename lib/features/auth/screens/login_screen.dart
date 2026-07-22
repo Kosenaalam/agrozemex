@@ -523,7 +523,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: AgroZemexTokens.bodyLarge.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   counterText: '',
                                   hintText: '000 000 0000',
                                   fillColor: AgroZemexTokens.surfaceContainerLow,
@@ -615,7 +615,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onPressed: _googleSignIn,
                                   style: OutlinedButton.styleFrom(
                                     backgroundColor: Colors.white,
-                                    side: BorderSide(
+                                    side: const BorderSide(
                                       color: AgroZemexTokens.surfaceContainerLow,
                                     ),
                                     shape: RoundedRectangleBorder(
@@ -646,7 +646,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onPressed: _appleSignIn,
                                   style: OutlinedButton.styleFrom(
                                     backgroundColor: Colors.white,
-                                    side: BorderSide(
+                                    side: const BorderSide(
                                       color: AgroZemexTokens.surfaceContainerLow,
                                     ),
                                     shape: RoundedRectangleBorder(
@@ -764,7 +764,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(
+                                    borderSide: const BorderSide(
                                       color: AgroZemexTokens.surfaceContainerLow,
                                     ),
                                   ),
