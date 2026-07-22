@@ -10,6 +10,7 @@ import 'package:agrozemex/features/auth/services/auth_service.dart';
 import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 import '../../maps/screens/map_screen.dart';
 import '../models/listing_card_model.dart';
+import '../models/listing_filter_model.dart';
 import '../services/listing_query_service.dart';
 import '../screens/listing_detail_screen.dart';
 
@@ -29,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  ListingFilterModel _filter = ListingFilterModel.empty;
 
   @override
   void initState() {
@@ -56,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final service = context.read<ListingQueryService>();
       final newListings =
-          await service.fetchNextPage(searchQuery: _searchQuery);
+          await service.fetchNextPage(searchQuery: _searchQuery, filter: _filter);
 
       if (!mounted) return;
 
@@ -94,11 +97,244 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       _searchQuery = '';
+      _filter = ListingFilterModel.empty;
       _listings.clear();
       _hasMore = true;
     });
 
     _loadMore();
+  }
+
+  void _applyFilters(ListingFilterModel newFilter) {
+    final service = context.read<ListingQueryService>();
+    service.resetPagination();
+
+    setState(() {
+      _filter = newFilter;
+      _listings.clear();
+      _hasMore = true;
+    });
+    _loadMore();
+  }
+
+  void _showFilterBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final List<String> soilTypes = ['All', 'Alluvial', 'Black', 'Clay', 'Loam', 'Sandy'];
+            final List<String> waterSources = ['All', 'Well', 'Canal', 'Borewell', 'Rainfed'];
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[350],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Filter Properties',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AgroZemexTokens.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Soil Type',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: soilTypes.map((type) {
+                        final selected = (_filter.soilType ?? 'All') == type;
+                        return ChoiceChip(
+                          label: Text(type),
+                          selected: selected,
+                          selectedColor: AgroZemexTokens.primary.withValues(alpha: 0.15),
+                          labelStyle: TextStyle(
+                            color: selected ? AgroZemexTokens.primary : Colors.black87,
+                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          onSelected: (v) {
+                            setSheetState(() {
+                              _filter = ListingFilterModel(
+                                roadAccess: _filter.roadAccess,
+                                soilType: type == 'All' ? null : type,
+                                waterSource: _filter.waterSource,
+                                minAreaSqM: _filter.minAreaSqM,
+                                maxAreaSqM: _filter.maxAreaSqM,
+                                village: _filter.village,
+                              );
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Water Source',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: waterSources.map((source) {
+                        final selected = (_filter.waterSource ?? 'All') == source;
+                        return ChoiceChip(
+                          label: Text(source),
+                          selected: selected,
+                          selectedColor: AgroZemexTokens.primary.withValues(alpha: 0.15),
+                          labelStyle: TextStyle(
+                            color: selected ? AgroZemexTokens.primary : Colors.black87,
+                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          onSelected: (v) {
+                            setSheetState(() {
+                              _filter = ListingFilterModel(
+                                roadAccess: _filter.roadAccess,
+                                soilType: _filter.soilType,
+                                waterSource: source == 'All' ? null : source,
+                                minAreaSqM: _filter.minAreaSqM,
+                                maxAreaSqM: _filter.maxAreaSqM,
+                                village: _filter.village,
+                              );
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Road Access',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Any'),
+                          selected: _filter.roadAccess == null,
+                          onSelected: (v) {
+                            setSheetState(() {
+                              _filter = ListingFilterModel(
+                                roadAccess: null,
+                                soilType: _filter.soilType,
+                                waterSource: _filter.waterSource,
+                                minAreaSqM: _filter.minAreaSqM,
+                                maxAreaSqM: _filter.maxAreaSqM,
+                                village: _filter.village,
+                              );
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Yes'),
+                          selected: _filter.roadAccess == true,
+                          onSelected: (v) {
+                            setSheetState(() {
+                              _filter = ListingFilterModel(
+                                roadAccess: true,
+                                soilType: _filter.soilType,
+                                waterSource: _filter.waterSource,
+                                minAreaSqM: _filter.minAreaSqM,
+                                maxAreaSqM: _filter.maxAreaSqM,
+                                village: _filter.village,
+                              );
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('No'),
+                          selected: _filter.roadAccess == false,
+                          onSelected: (v) {
+                            setSheetState(() {
+                              _filter = ListingFilterModel(
+                                roadAccess: false,
+                                soilType: _filter.soilType,
+                                waterSource: _filter.waterSource,
+                                minAreaSqM: _filter.minAreaSqM,
+                                maxAreaSqM: _filter.maxAreaSqM,
+                                village: _filter.village,
+                              );
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setSheetState(() {
+                                _filter = ListingFilterModel.empty;
+                              });
+                            },
+                            child: const Text('Clear All'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _applyFilters(_filter);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AgroZemexTokens.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Apply'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -141,7 +377,74 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: AgroZemexTokens.surface,
+      drawer: Drawer(
+        backgroundColor: AgroZemexTokens.surface,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                color: AgroZemexTokens.primary,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'AgroZemex',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Your land & crop marketplace',
+                    style: GoogleFonts.inter(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person_outline, color: AgroZemexTokens.primary),
+              title: const Text('My Profile'),
+              onTap: () {
+                Navigator.pop(context); // close drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreenDash()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined, color: AgroZemexTokens.primary),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Settings under development')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline, color: AgroZemexTokens.primary),
+              title: const Text('Help & Support'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Support email: support@agrozemex.com')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
       // PERF FIX: Replaced BackdropFilter (GPU-blocking ImageFilter.blur sigma=20 on every
       // frame) with a plain semi-transparent Container. BackdropFilter was the #1 cause of
       // scroll-related ANR on mid-range devices. Visual is preserved via border + shadow.
@@ -169,7 +472,9 @@ class _HomeScreenState extends State<HomeScreen> {
               elevation: 0,
               leading: IconButton(
                 icon: const Icon(Icons.menu, color: AgroZemexTokens.primary),
-                onPressed: () {},
+                onPressed: () {
+                  _scaffoldKey.currentState?.openDrawer();
+                },
               ),
               title: Text(
                 'AgroZemex',
@@ -301,7 +606,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: AgroZemexTokens.primary,
                         size: 20,
                       ),
-                      onPressed: () {},
+                      onPressed: () => _showFilterBottomSheet(context),
                     ),
                   ],
                 ),
@@ -413,11 +718,13 @@ class _HomeScreenState extends State<HomeScreen> {
         item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
 
     final bool hasImage = item.photoPaths.isNotEmpty;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double cardHeight = (screenWidth * 0.8).clamp(280.0, 340.0);
 
     return GestureDetector(
       onTap: () => _onCardTap(item),
       child: Container(
-        height: 320,
+        height: cardHeight,
         decoration: BoxDecoration(
           borderRadius: AgroZemexTokens.radiusLargeCard,
           boxShadow: AgroZemexTokens.softShadows,
@@ -468,43 +775,46 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AgroZemexTokens.primary.withValues(alpha: 0.8),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'ARABLE',
-                          style: AgroZemexTokens.labelCaps.copyWith(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                      if (item.soilType != null && item.soilType!.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AgroZemexTokens.primary.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            item.soilType!.toUpperCase(),
+                            style: AgroZemexTokens.labelCaps.copyWith(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'PREMIUM',
-                          style: AgroZemexTokens.labelCaps.copyWith(
-                            color: AgroZemexTokens.onSurface,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                        const SizedBox(width: 8),
+                      ],
+                      if (item.areaInSqMeters > 20000)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'PREMIUM',
+                            style: AgroZemexTokens.labelCaps.copyWith(
+                              color: AgroZemexTokens.onSurface,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   Container(

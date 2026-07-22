@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -15,6 +14,11 @@ import 'package:agrozemex/features/crops/screens/crop_sell_screen.dart';
 import 'package:agrozemex/features/crops/services/crop_query_service.dart';
 import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 import 'package:agrozemex/shared/services/location_service.dart';
+import 'package:agrozemex/shared/services/distance_service.dart';
+import '../widgets/crop_search_bar.dart';
+import '../widgets/crop_type_chips.dart';
+import '../widgets/crop_filter_sheet.dart';
+import '../widgets/crop_grid_item.dart';
 
 class CropHomeScreen extends StatefulWidget {
   const CropHomeScreen({super.key});
@@ -104,7 +108,8 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
 
     try {
       _userPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium, // medium, not high — much faster
+        desiredAccuracy:
+            LocationAccuracy.medium, // medium, not high — much faster
       ).timeout(const Duration(seconds: 5));
     } catch (_) {
       // Non-fatal: distance sort simply won't work without location
@@ -114,26 +119,14 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
 
   double _calculateDistance(GeoPoint cropLocation) {
     if (_userPosition == null) return double.infinity;
-
-    final double lat1 = _userPosition!.latitude;
-    final double lon1 = _userPosition!.longitude;
-    final double lat2 = cropLocation.latitude;
-    final double lon2 = cropLocation.longitude;
-
-    const R = 6371;
-    final dLat = radians(lat2 - lat1);
-    final dLon = radians(lon2 - lon1);
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(radians(lat1)) *
-            math.cos(radians(lat2)) *
-            math.sin(dLon / 2) *
-            math.sin(dLon / 2);
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return R * c;
+    return DistanceService().distanceBetweenPoints(
+          _userPosition!.latitude,
+          _userPosition!.longitude,
+          cropLocation.latitude,
+          cropLocation.longitude,
+        ) /
+        1000.0;
   }
-
-  double radians(double degrees) => degrees * (math.pi / 180);
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
@@ -155,8 +148,9 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
       setState(() {
         _hasMore = service.hasMore;
         final existingIds = _listings.map((e) => e.id).toSet();
-        final uniqueNew =
-            newListings.where((e) => !existingIds.contains(e.id)).toList();
+        final uniqueNew = newListings
+            .where((e) => !existingIds.contains(e.id))
+            .toList();
         _listings.addAll(uniqueNew);
       });
     } catch (e) {
@@ -203,190 +197,51 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AgroZemexTokens.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: DraggableScrollableSheet(
-            initialChildSize: 0.75,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
-            expand: false,
-            builder: (context, scrollController) {
-              return SingleChildScrollView(
-                controller: scrollController,
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: AgroZemexTokens.onSurfaceVariant.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Filters',
-                            style: AgroZemexTokens.headlineMedium,
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _selectedCropType = null;
-                                _villageFilter = '';
-                                _useLocationFilter = false;
-                                _maxDistance = 50;
-                                _minPrice = 0;
-                                _maxPrice = 10000;
-                              });
-                              Navigator.pop(context);
-                              _applyFilters();
-                            },
-                            child: Text(
-                              'Reset',
-                              style: AgroZemexTokens.bodyMedium.copyWith(
-                                color: AgroZemexTokens.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 30),
-
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedCropType,
-                        decoration: InputDecoration(
-                          labelText: 'Select Crop Type',
-                          border: OutlineInputBorder(
-                            borderRadius: AgroZemexTokens.radiusEight,
-                          ),
-                        ),
-                        isExpanded: true,
-                        items: _cropTypes
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
-                            .toList(),
-                        onChanged: (v) => setState(() => _selectedCropType = v),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      TextField(
-                        onChanged: (v) =>
-                            setState(() => _villageFilter = v.trim()),
-                        decoration: InputDecoration(
-                          labelText: 'Village / Location',
-                          border: OutlineInputBorder(
-                            borderRadius: AgroZemexTokens.radiusEight,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.location_on,
-                            color: AgroZemexTokens.primary,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      SwitchListTile(
-                        activeThumbColor: AgroZemexTokens.primary,
-                        title: Text(
-                          'Near Me (max ${_maxDistance.round()} km)',
-                          style: AgroZemexTokens.bodyLarge,
-                        ),
-                        value: _useLocationFilter,
-                        onChanged: (v) async {
-                          setState(() => _useLocationFilter = v);
-                          if (v && _userPosition == null) {
-                            await _getUserLocation();
-                          }
-                        },
-                      ),
-
-                      if (_useLocationFilter)
-                        Slider(
-                          min: 0.0,
-                          max: 100.0,
-                          activeColor: AgroZemexTokens.primary,
-                          value: _maxDistance,
-                          label: '${_maxDistance.round()} km',
-                          onChanged: (v) => setState(() => _maxDistance = v),
-                          onChangeEnd: (v) => _applyFilters(),
-                        ),
-
-                      const SizedBox(height: 20),
-
-                      Text(
-                        'Price Range (₹)',
-                        style: AgroZemexTokens.bodyLarge.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      RangeSlider(
-                        min: 0.0,
-                        max: 10000.0,
-                        divisions: 100,
-                        activeColor: AgroZemexTokens.primary,
-                        values: RangeValues(_minPrice, _maxPrice),
-                        labels: RangeLabels(
-                          '₹${_minPrice.round()}',
-                          '₹${_maxPrice.round()}',
-                        ),
-                        onChanged: (values) {
-                          setState(() {
-                            _minPrice = values.start;
-                            _maxPrice = values.end;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AgroZemexTokens.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: AgroZemexTokens.radiusEight,
-                            ),
-                          ),
-                          onPressed: () {
-                            _applyFilters();
-                            Navigator.pop(context);
-                          },
-                          child: const Text(
-                            'Apply Filters',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+        return CropFilterSheet(
+          cropTypes: _cropTypes,
+          initialCropType: _selectedCropType,
+          initialVillage: _villageFilter,
+          initialUseLocation: _useLocationFilter,
+          initialMaxDistance: _maxDistance,
+          initialMinPrice: _minPrice,
+          initialMaxPrice: _maxPrice,
+          userPosition: _userPosition,
+          onGetUserLocation: () async {
+            await _getUserLocation();
+            return _userPosition;
+          },
+          onApply:
+              ({
+                required cropType,
+                required village,
+                required useLocation,
+                required maxDistance,
+                required minPrice,
+                required maxPrice,
+              }) {
+                setState(() {
+                  _selectedCropType = cropType;
+                  _villageFilter = village;
+                  _useLocationFilter = useLocation;
+                  _maxDistance = maxDistance;
+                  _minPrice = minPrice;
+                  _maxPrice = maxPrice;
+                });
+                Navigator.pop(context);
+                _applyFilters();
+              },
+          onReset: () {
+            setState(() {
+              _selectedCropType = null;
+              _villageFilter = '';
+              _useLocationFilter = false;
+              _maxDistance = 50;
+              _minPrice = 0;
+              _maxPrice = 10000;
+            });
+            Navigator.pop(context);
+            _applyFilters();
+          },
         );
       },
     );
@@ -409,11 +264,7 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
                 color: AgroZemexTokens.primary,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.grass,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.grass, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 10),
             Text(
@@ -427,10 +278,7 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.tune,
-              color: AgroZemexTokens.onSurface,
-            ),
+            icon: const Icon(Icons.tune, color: AgroZemexTokens.onSurface),
             onPressed: () => _showFilterBottomSheet(context),
           ),
           const SizedBox(width: 8),
@@ -447,113 +295,44 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
             // Floating Glass Search Bar
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AgroZemexTokens.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: AgroZemexTokens.softShadows,
-                    border: Border.all(
-                      color: AgroZemexTokens.onSurfaceVariant.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      final query = value.toLowerCase().trim();
-                      _debounce?.cancel();
-                      _debounce = Timer(const Duration(milliseconds: 300), () {
-                        final service = context.read<CropQueryService>();
-                        service.resetPagination();
-                        setState(() {
-                          _searchQuery = query;
-                          _listings.clear();
-                          _hasMore = true;
-                          _isLoading = false;
-                        });
-                        _loadMore();
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                child: CropSearchBar(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    final query = value.toLowerCase().trim();
+                    _debounce?.cancel();
+                    _debounce = Timer(const Duration(milliseconds: 300), () {
+                      final service = context.read<CropQueryService>();
+                      service.resetPagination();
+                      setState(() {
+                        _searchQuery = query;
+                        _listings.clear();
+                        _hasMore = true;
+                        _isLoading = false;
                       });
-                    },
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      color: AgroZemexTokens.onSurface,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Search fresh harvests, grains, spices...',
-                      hintStyle: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: AgroZemexTokens.onSurfaceVariant,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: AgroZemexTokens.onSurfaceVariant,
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: AgroZemexTokens.onSurfaceVariant,
-                              ),
-                              onPressed: _clearSearch,
-                            )
-                          : IconButton(
-                              icon: const Icon(
-                                Icons.filter_list,
-                                color: AgroZemexTokens.primary,
-                              ),
-                              onPressed: () => _showFilterBottomSheet(context),
-                            ),
-                    ),
-                  ),
+                      _loadMore();
+                    });
+                  },
+                  onClear: _clearSearch,
+                  onFilterTap: () => _showFilterBottomSheet(context),
                 ),
               ),
             ),
 
-            // Horizontal Category Pills
+            // Horizontal Category Chips
             SliverToBoxAdapter(
-              child: SizedBox(
-                height: 48,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: _cropTypes.length,
-                  itemBuilder: (context, index) {
-                    final type = _cropTypes[index];
-                    final bool isSelected =
-                        (_selectedCropType == type) ||
-                        (_selectedCropType == null && type == 'All');
-
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: ChoiceChip(
-                        label: Text(type),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            _selectedCropType = type == 'All' ? null : type;
-                          });
-                          _applyFilters();
-                        },
-                        selectedColor: AgroZemexTokens.primary,
-                        backgroundColor: AgroZemexTokens.surfaceContainerLow,
-                        labelStyle: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected
-                              ? Colors.white
-                              : AgroZemexTokens.onSurfaceVariant,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              child: CropTypeChips(
+                cropTypes: _cropTypes,
+                selectedCropType: _selectedCropType,
+                onSelected: (type) {
+                  setState(() {
+                    _selectedCropType = type;
+                  });
+                  _applyFilters();
+                },
               ),
             ),
 
@@ -597,10 +376,7 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.asset(
-                              AppAssets.loginHero,
-                              fit: BoxFit.cover,
-                            ),
+                            Image.asset(AppAssets.loginHero, fit: BoxFit.cover),
                             Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
@@ -623,6 +399,7 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
                                       horizontal: 10,
                                       vertical: 4,
                                     ),
+
                                     decoration: BoxDecoration(
                                       color: AgroZemexTokens.primary,
                                       borderRadius: BorderRadius.circular(12),
@@ -641,10 +418,10 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
                                     'Long-Grain Basmati Rice',
                                     style: AgroZemexTokens.headlineMedium
                                         .copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 22,
-                                    ),
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 22,
+                                        ),
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
@@ -744,26 +521,56 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
                 : SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     sliver: SliverGrid(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          if (index == _listings.length) {
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: AgroZemexTokens.primary,
-                              ),
-                            );
-                          }
-                          return _buildCropCard(context, _listings[index]);
-                        },
-                        childCount: _listings.length + (_isLoading ? 1 : 0),
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        if (index == _listings.length) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: AgroZemexTokens.primary,
+                            ),
+                          );
+                        }
+                        double? distance;
+                        if (_useLocationFilter && _userPosition != null) {
+                          distance = _calculateDistance(
+                            _listings[index].location,
+                          );
+                        }
+                        return CropGridItem(
+                          item: _listings[index],
+                          distance: distance,
+                          onTap: () {
+                            final auth = context.read<AuthService>();
+                            if (auth.user != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      CropDetailScreen(item: _listings[index]),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('please login first'),
+                                ),
+                              );
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (contxt) => const LoginScreen(),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      }, childCount: _listings.length + (_isLoading ? 1 : 0)),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.72,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                      ),
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.72,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
                     ),
                   ),
 
@@ -857,162 +664,6 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    );
-  }
-
-  Widget _buildCropCard(BuildContext context, CropCardModel item) {
-    double? distance;
-    if (_useLocationFilter && _userPosition != null) {
-      distance = _calculateDistance(item.location);
-    }
-
-    final bool hasImage = item.photoPaths.isNotEmpty;
-
-    return GestureDetector(
-      onTap: () {
-        final auth = context.read<AuthService>();
-
-        if (auth.user != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => CropDetailScreen(item: item)),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('please login first')),
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (contxt) => const LoginScreen()),
-          );
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: AgroZemexTokens.radiusLargeCard,
-          boxShadow: AgroZemexTokens.softShadows,
-        ),
-        child: ClipRRect(
-          borderRadius: AgroZemexTokens.radiusLargeCard,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Photo Thumbnail Container
-              SizedBox(
-                height: 110,
-                width: double.infinity,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    hasImage
-                        ? Image.network(
-                            item.photoPaths.first,
-                            fit: BoxFit.cover,
-                            cacheHeight: 170,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(child: Icon(Icons.error));
-                            },
-                          )
-                        : Image.asset(
-                            AppAssets.defaultLand,
-                            fit: BoxFit.cover,
-                          ),
-                    if (distance != null)
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${distance.toStringAsFixed(1)} KM',
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AgroZemexTokens.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '₹ ${item.price.toStringAsFixed(0)} / ${item.unit}',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: AgroZemexTokens.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 12,
-                          color: AgroZemexTokens.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(
-                            item.village,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: AgroZemexTokens.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${item.quantity.toStringAsFixed(0)} ${item.unit} available',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: AgroZemexTokens.secondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

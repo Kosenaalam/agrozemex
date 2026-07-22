@@ -29,7 +29,10 @@ class CropQueryService {
         .limit(limit);
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      query = query.where('search_tokens', arrayContains: searchQuery.toLowerCase());
+      final tokens = searchQuery.toLowerCase().split(' ').where((t) => t.length > 2).toList();
+      if (tokens.isNotEmpty) {
+        query = query.where('search_tokens', arrayContainsAny: tokens.take(10).toList());
+      }
     }
 
     if (cropType != null && cropType.isNotEmpty) {

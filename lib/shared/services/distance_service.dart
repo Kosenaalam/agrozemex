@@ -37,6 +37,15 @@ class DistanceService {
     );
   }
 
+  double distanceBetweenPoints(
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) {
+    return _haversineDistance(lat1, lng1, lat2, lng2);
+  }
+
   double _haversineDistance(
     double lat1,
     double lng1,

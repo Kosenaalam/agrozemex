@@ -124,42 +124,49 @@ class _CropSellScreenState extends State<CropSellScreen> {
       );
       return;
     }
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    if (_cropType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a crop type')),
+      );
+      return;
+    }
+    if (_pickedImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add at least one photo')),
+      );
+      return;
+    }
+
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
     try {
-      if (_formKey.currentState!.validate() &&
-          _pickedImages.isNotEmpty &&
-          _cropType != null) {
-        final storageService = context.read<StorageService>();
-        final files = _pickedImages.map((e) => File(e.path)).toList();
-        final imageUrls = await storageService.uploadListingImages(files);
-         if (!mounted) return;
-         final auth = context.read<AuthService>();
-        if (auth.user == null) throw Exception('User not logged in');
-        final firestoreService = context.read<UserFirestoreService>();
-        await firestoreService.saveCropListing(
-          uid: auth.user!.uid,
-          title: _titleController.text,
-          price: double.parse(_priceController.text),
-          description: _descriptionController.text,
-          quantity: double.parse(_quantityController.text),
-          photoPaths: imageUrls,
-          cropType: _cropType!,
-          unit: _unit!,
-          village: _villageController.text,
-          location: _location!,
-        );
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Crop listed successfully')),
-        );
-        Navigator.popUntil(context, (route) => route.isFirst);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Complete all fields and add photos')),
-        );
-        if (mounted) setState(() => _isSubmitting = false);
-      }
+      final storageService = context.read<StorageService>();
+      final files = _pickedImages.map((e) => File(e.path)).toList();
+      final imageUrls = await storageService.uploadListingImages(files);
+       if (!mounted) return;
+       final auth = context.read<AuthService>();
+      if (auth.user == null) throw Exception('User not logged in');
+      final firestoreService = context.read<UserFirestoreService>();
+      await firestoreService.saveCropListing(
+        uid: auth.user!.uid,
+        title: _titleController.text,
+        price: double.parse(_priceController.text),
+        description: _descriptionController.text,
+        quantity: double.parse(_quantityController.text),
+        photoPaths: imageUrls,
+        cropType: _cropType!,
+        unit: _unit!,
+        village: _villageController.text,
+        location: _location!,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Crop listed successfully')),
+      );
+      Navigator.popUntil(context, (route) => route.isFirst);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

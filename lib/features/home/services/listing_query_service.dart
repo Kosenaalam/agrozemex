@@ -40,7 +40,9 @@ class ListingQueryService {
     final tokens = normalizedQuery.split(' ').where((e) => e.length > 2).toList();
     final expanded = <String>{};
     for (final token in tokens) {
+      expanded.add(token);
       expanded.addAll(SearchTokenService.expandWithSynonyms(token));
+      expanded.addAll(SearchTokenService.generateNGrams(token));
     }
     final uniqueList = expanded.toList();
     return uniqueList.length > 10 ? uniqueList.sublist(0, 10) : uniqueList;

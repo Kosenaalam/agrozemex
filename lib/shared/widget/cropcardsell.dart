@@ -1,5 +1,5 @@
 import 'package:agrozemex/features/crops/models/crop_card_model.dart';
-import 'package:agrozemex/features/crops/screens/crop_home_screen.dart';
+import 'package:agrozemex/features/crops/screens/crop_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -17,7 +17,7 @@ class Cropcardsell extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => CropHomeScreen(),
+              builder: (_) => CropDetailScreen(item: item),
             ),
           );
       },
