@@ -6,7 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:agrozemex/core/theme/theme.dart';
+import 'package:agrozemex/features/maps/screens/view_listing_map_screen.dart';
 import 'package:agrozemex/shared/services/wishlist_service.dart';
 import 'package:provider/provider.dart';
 import '../../auth/services/auth_service.dart';
@@ -143,6 +146,24 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  Future<void> _zoomIn() async {
+    if (_mapController == null) return;
+    final state = await _mapController!.getCameraState();
+    _mapController!.flyTo(
+      mapbox.CameraOptions(zoom: state.zoom + 1.5),
+      mapbox.MapAnimationOptions(duration: 300),
+    );
+  }
+
+  Future<void> _zoomOut() async {
+    if (_mapController == null) return;
+    final state = await _mapController!.getCameraState();
+    _mapController!.flyTo(
+      mapbox.CameraOptions(zoom: state.zoom - 1.5),
+      mapbox.MapAnimationOptions(duration: 300),
+    );
+  }
+
   @override
   void dispose() {
     _pointManager?.deleteAll();
@@ -153,6 +174,40 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     _outlineManager = null;
     _mapController = null;
     super.dispose();
+  }
+
+  Widget _buildMapControlButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            icon,
+            color: AgroZemexTokens.primary,
+            size: 20,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildPhoto(String path, {double height = 180, double width = double.infinity}) {
@@ -563,16 +618,59 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     ),
                     const SizedBox(height: 12),
                     Container(
-                      height: 260,
+                      height: 280,
                       decoration: BoxDecoration(
                         borderRadius: AgroZemexTokens.radiusLargeCard,
                         boxShadow: AgroZemexTokens.softShadows,
                       ),
                       child: ClipRRect(
                         borderRadius: AgroZemexTokens.radiusLargeCard,
-                        child: mapbox.MapWidget(
-                          styleUri: mapbox.MapboxStyles.SATELLITE_STREETS,
-                          onMapCreated: _onMapCreated,
+                        child: Stack(
+                          children: [
+                            mapbox.MapWidget(
+                              styleUri: mapbox.MapboxStyles.SATELLITE_STREETS,
+                              onMapCreated: _onMapCreated,
+                              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                                Factory<OneSequenceGestureRecognizer>(
+                                  () => EagerGestureRecognizer(),
+                                ),
+                              },
+                            ),
+                            Positioned(
+                              top: 12,
+                              right: 12,
+                              child: Column(
+                                children: [
+                                  _buildMapControlButton(
+                                    icon: Icons.add,
+                                    tooltip: 'Zoom In',
+                                    onTap: _zoomIn,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildMapControlButton(
+                                    icon: Icons.remove,
+                                    tooltip: 'Zoom Out',
+                                    onTap: _zoomOut,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildMapControlButton(
+                                    icon: Icons.open_in_full,
+                                    tooltip: 'Fullscreen Map',
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ViewListingMapScreen(
+                                            listingId: widget.listingId,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -585,60 +683,62 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       ),
 
       // Sticky Bottom Action Bar
-      bottomSheet: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
           boxShadow: AgroZemexTokens.softShadows,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
-          child: Row(
-            children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ASKING PRICE',
-                    style: AgroZemexTokens.labelCaps.copyWith(
-                      fontSize: 10,
-                      color: AgroZemexTokens.onSurfaceVariant,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ASKING PRICE',
+                      style: AgroZemexTokens.labelCaps.copyWith(
+                        fontSize: 10,
+                        color: AgroZemexTokens.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  Text(
-                    '₹ ${widget.price.toStringAsFixed(0)}',
-                    style: GoogleFonts.inter(
-                      fontSize: 22,
+                    Text(
+                      '₹ ${widget.price.toStringAsFixed(0)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AgroZemexTokens.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.calendar_month, size: 18),
+                  label: Text(
+                    'Book Visit',
+                    style: AgroZemexTokens.bodyLarge.copyWith(
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      color: AgroZemexTokens.primary,
                     ),
                   ),
-                ],
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.calendar_month, size: 18),
-                label: Text(
-                  'Book Visit',
-                  style: AgroZemexTokens.bodyLarge.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AgroZemexTokens.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AgroZemexTokens.radiusEight,
+                    ),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AgroZemexTokens.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AgroZemexTokens.radiusEight,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
