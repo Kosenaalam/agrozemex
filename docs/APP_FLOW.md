@@ -125,6 +125,20 @@ flowchart TD
     J --> K[Seller Taps Confirm Visit or Contacts Buyer Directly]
 ```
 
+### 4.4 Seller Contact Privacy & Anti-Misuse Consent Workflow
+
+```mermaid
+flowchart TD
+    A[Land Seller Phone Masked by Default on Card] --> B[Buyer Taps Show Phone Number]
+    B --> C{Buyer Authenticated & Phone Verified?}
+    C -- No --> D[Trigger Login / PhoneBindingDialog]
+    C -- Yes --> E[Open SellerContactDisclaimerDialog]
+    E --> F[Display Anti-Misuse Policy & Warning]
+    F --> G{Buyer Accepts [x] Anti-Misuse Checkbox?}
+    G -- No --> H[Cancel & Keep Phone Masked]
+    G -- Yes --> I[Unmask Seller Phone Number on Card]
+```
+
 ---
 
 ### 4.2 Interactive GIS Land Boundary Drawing & Listing Creation Flow

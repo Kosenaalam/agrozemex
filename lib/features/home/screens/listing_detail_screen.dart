@@ -19,6 +19,7 @@ import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
 import 'package:agrozemex/shared/widget/book_visit_sheet.dart';
+import 'package:agrozemex/shared/widget/seller_contact_disclaimer_dialog.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final String listingId;
@@ -53,6 +54,39 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   mapbox.PolylineAnnotationManager? _outlineManager;
 
   Uint8List? _blueCircleIcon;
+  bool _isSellerPhoneRevealed = false;
+
+  Future<void> _handleRevealSellerPhone(String rawPhone) async {
+    if (_isSellerPhoneRevealed) return;
+
+    final auth = context.read<AuthService>();
+    final user = auth.user;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to view seller contact details.')),
+      );
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
+
+    final userService = context.read<UserFirestoreService>();
+    final verified = await userService.isPhoneAndTermsVerified(user);
+    if (!verified && mounted) {
+      final success = await PhoneBindingDialog.show(context);
+      if (!success) return;
+    }
+
+    if (!mounted) return;
+    final agreed = await SellerContactDisclaimerDialog.show(context);
+    if (agreed && mounted) {
+      setState(() {
+        _isSellerPhoneRevealed = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seller contact unmasked. Strictly use for land purchase inquiries.')),
+      );
+    }
+  }
 
   Future<Map<String, dynamic>> _fetchSellerData() async {
     String targetSellerId = widget.sellerId ?? '';
@@ -627,6 +661,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         final sellerData = snapshot.data ?? {};
                         final sellerName = sellerData['name'] ?? sellerData['displayName'] ?? 'AgroZemex Verified Seller';
                         final sellerPhone = sellerData['phone'] ?? '';
+                        final displayedPhone = sellerPhone.isNotEmpty
+                            ? (_isSellerPhoneRevealed
+                                ? sellerPhone
+                                : (sellerPhone.length > 5
+                                    ? '${sellerPhone.substring(0, 5)} •••••'
+                                    : '••••••••••'))
+                            : '';
 
                         return Container(
                           padding: const EdgeInsets.all(16),
@@ -635,66 +676,125 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                             borderRadius: AgroZemexTokens.radiusLargeCard,
                             boxShadow: AgroZemexTokens.softShadows,
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const CircleAvatar(
-                                radius: 24,
-                                backgroundColor: AgroZemexTokens.primary,
-                                child: Icon(Icons.person, color: Colors.white, size: 28),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'VERIFIED LAND SELLER',
-                                      style: AgroZemexTokens.labelCaps.copyWith(
-                                        color: AgroZemexTokens.primary,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      sellerName,
-                                      style: AgroZemexTokens.bodyLarge.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    if (sellerPhone.isNotEmpty)
-                                      Text(
-                                        sellerPhone,
-                                        style: AgroZemexTokens.bodyMedium.copyWith(
-                                          color: AgroZemexTokens.onSurfaceVariant,
-                                          fontSize: 13,
+                              Row(
+                                children: [
+                                  const CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: AgroZemexTokens.primary,
+                                    child: Icon(Icons.person, color: Colors.white, size: 28),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'VERIFIED LAND SELLER',
+                                          style: AgroZemexTokens.labelCaps.copyWith(
+                                            color: AgroZemexTokens.primary,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      ),
-                                  ],
-                                ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          sellerName,
+                                          style: AgroZemexTokens.bodyLarge.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        if (displayedPhone.isNotEmpty)
+                                          Row(
+                                            children: [
+                                              Text(
+                                                displayedPhone,
+                                                style: AgroZemexTokens.bodyMedium.copyWith(
+                                                  color: AgroZemexTokens.onSurfaceVariant,
+                                                  fontSize: 13,
+                                                  fontWeight: _isSellerPhoneRevealed
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                ),
+                                              ),
+                                              if (_isSellerPhoneRevealed) ...[
+                                                const SizedBox(width: 6),
+                                                InkWell(
+                                                  onTap: () {
+                                                    Clipboard.setData(ClipboardData(text: sellerPhone));
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text('Seller phone number copied to clipboard!'),
+                                                      ),
+                                                    );
+                                                  },
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.all(4),
+                                                    child: Icon(
+                                                      Icons.content_copy,
+                                                      size: 14,
+                                                      color: AgroZemexTokens.primary,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AgroZemexTokens.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.verified, size: 14, color: AgroZemexTokens.primary),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Verified',
+                                          style: TextStyle(
+                                            color: AgroZemexTokens.primary,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AgroZemexTokens.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.verified, size: 14, color: AgroZemexTokens.primary),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Verified',
-                                      style: TextStyle(
-                                        color: AgroZemexTokens.primary,
+                              if (sellerPhone.isNotEmpty && !_isSellerPhoneRevealed) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 38,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _handleRevealSellerPhone(sellerPhone),
+                                    icon: const Icon(Icons.lock_outline, size: 16, color: AgroZemexTokens.primary),
+                                    label: Text(
+                                      'Show Phone Number',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 11,
+                                        color: AgroZemexTokens.primary,
                                       ),
                                     ),
-                                  ],
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: AgroZemexTokens.primary),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                         );
