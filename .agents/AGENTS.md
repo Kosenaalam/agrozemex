@@ -1,27 +1,78 @@
-# AgroZemex Project Rules
+# Agrozemex AI Development Rules
 
-Whenever redesigning screens, converting HTML/CSS designs to Flutter, or updating code in this project, strictly follow these rules:
+## General
+- Always understand the existing code before making changes.
+- Never rewrite working code unless explicitly requested.
+- Preserve Clean Architecture.
+- Maintain backward compatibility.
+- Make the smallest possible change.
+- Never introduce breaking changes.
+- Reuse existing components before creating new ones.
+- Follow DRY and SOLID principles.
 
-1. **Preserve Application Logic & Functionality**:
-   - Maintain 100% of existing original app functionality, business logic, state management, Firestore queries, authentication checks, navigation callbacks, models, and services.
-   - ONLY modify code directly required to complete the specific requested task. NEVER remove, break, or drop existing functional code.
+## Planning
+- First analyze the feature.
+- Explain the implementation plan.
+- Wait for approval before making large architectural changes.
+- Divide large tasks into smaller milestones.
 
-2. **Production-Grade Implementation**:
-   - All code additions and modifications must be production-ready, highly clean, maintainable, performant, and robust.
-   - Always follow industry best practices and standard architectural patterns.
+## Code Quality
+- Write production-ready code only.
+- No placeholder code.
+- No TODO comments.
+- No hardcoded values.
+- Use constants and enums where appropriate.
+- Keep functions short and readable.
+- Use meaningful variable names.
+- Remove unused imports and dead code.
 
-3. **Zero Assumptions & Best Approaches**:
-   - Never use temporary hacks, trial-and-error workarounds, or unverified placeholders.
-   - Follow strict best practices based on established Flutter/Dart guidelines without guessing or assuming unrequested requirements.
+## Flutter
+- Follow Clean Architecture.
+- Use Riverpod for state management.
+- Keep UI, business logic, and data layers separated.
+- Reuse widgets whenever possible.
+- Optimize widget rebuilds.
+- Use const constructors whenever possible.
+- Keep UI responsive.
 
-4. **Planning First Workflow**:
-   - Always formulate a clear, solid implementation plan before modifying code, ensuring full alignment with existing project architecture.
+## Performance
+- Avoid unnecessary rebuilds.
+- Avoid duplicate API calls.
+- Lazy load large datasets.
+- Optimize images and maps.
+- Cache data where beneficial.
 
-5. **Preserve Previous Code in Comments**:
-   - NEVER delete old/original screen code when redesigning or replacing a file.
-   - ALWAYS retain the entire previous code in commented-out form (`/* ... */`) at the bottom of the file for reference and backup.
+## Security
+- Never expose API keys.
+- Never hardcode secrets.
+- Validate all user input.
+- Follow secure coding practices.
 
-6. **Strict Adherence to AgroZemex Design Tokens**:
-   - ALWAYS use `AgroZemexTokens` from `package:agrozemex/core/theme/theme.dart` for colors (Primary `#2D4F1E`, Surface `#F9F9F9`, Surface Containers), typography (`Inter`), radius (`8px`/`24px`), spacing, soft shadows, and glassmorphism.
-   - Avoid hardcoding arbitrary colors or fonts outside the AgroZemex design system.
+## Testing
+- Ensure the project builds successfully.
+- Fix analyzer warnings.
+- Do not leave compilation errors.
+- Verify new code does not break existing features.
 
+## Git
+- Keep commits focused.
+- Do not modify unrelated files.
+- Preserve formatting and project style.
+
+## Communication
+- Before coding:
+  - Explain what will change.
+  - Mention affected files.
+  - Mention possible risks.
+- After coding:
+  - Summarize changes.
+  - Explain why the implementation is better.
+  - Mention any follow-up improvements.
+
+## Never
+- Never delete working functionality.
+- Never refactor unrelated code.
+- Never guess requirements.
+- Never change project architecture without approval.
+- Never generate duplicate code.
+- Never ignore existing coding style.

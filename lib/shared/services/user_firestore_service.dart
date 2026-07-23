@@ -8,7 +8,7 @@ class UserFirestoreService {
   final FirebaseFirestore _db;
   UserFirestoreService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
-  Future<void> createUserIfNotExists(User user) async {
+  Future<void> createUserIfNotExists(User user, {bool agreedToTerms = true}) async {
     final ref = _db.collection('users').doc(user.uid);
     final snap = await ref.get();
 
@@ -19,6 +19,8 @@ class UserFirestoreService {
         'phone': user.phoneNumber ?? '',
         'createdAt': Timestamp.now(),
         'role': 'buyer',
+        'agreedToTerms': agreedToTerms,
+        'termsAgreedAt': agreedToTerms ? Timestamp.now() : null,
       });
     } else {
       final data = snap.data();
@@ -29,10 +31,43 @@ class UserFirestoreService {
       if (user.phoneNumber != null && (data == null || data['phone'] == null || data['phone'] == '')) {
         updates['phone'] = user.phoneNumber;
       }
+      if (agreedToTerms && (data == null || data['agreedToTerms'] != true)) {
+        updates['agreedToTerms'] = true;
+        updates['termsAgreedAt'] = Timestamp.now();
+      }
       if (updates.isNotEmpty) {
         await ref.update(updates);
       }
     }
+  }
+
+  Future<void> updateUserPhoneAndTerms(String uid, {required String phone, required bool agreedToTerms}) async {
+    final ref = _db.collection('users').doc(uid);
+    await ref.set({
+      'phone': phone,
+      'agreedToTerms': agreedToTerms,
+      if (agreedToTerms) 'termsAgreedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<bool> isPhoneAndTermsVerified(User user) async {
+    // If Firebase Auth already has phone number
+    if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) {
+      final doc = await _db.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        return data?['agreedToTerms'] == true;
+      }
+      return true;
+    }
+
+    // Otherwise check Firestore
+    final doc = await _db.collection('users').doc(user.uid).get();
+    if (!doc.exists) return false;
+    final data = doc.data();
+    final phone = data?['phone'] as String?;
+    final agreed = data?['agreedToTerms'] as bool?;
+    return phone != null && phone.isNotEmpty && agreed == true;
   }
 
   Future<Map<String, dynamic>> getUserData(String uid) async {

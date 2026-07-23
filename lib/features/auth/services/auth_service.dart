@@ -289,7 +289,7 @@ class AuthService extends ChangeNotifier {
       );
       final cred = await _auth.signInWithCredential(credential);
       if (cred.user != null) {
-        await _userService.createUserIfNotExists(cred.user!);
+        await _userService.createUserIfNotExists(cred.user!, agreedToTerms: true);
         if (cred.user!.phoneNumber != null) {
           await savePhoneToPrefs(cred.user!.phoneNumber!);
         }
@@ -305,6 +305,29 @@ class AuthService extends ChangeNotifier {
       }
     } catch (e) {
       throw AuthException('unknown', 'Unexpected error during verification. Please try again.');
+    }
+  }
+
+  Future<void> linkOrUpdateUserPhoneWithOtp(String verificationId, String smsCode, String phone) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        try {
+          await currentUser.linkWithCredential(credential);
+        } catch (_) {
+          // If already linked or credential issue, proceed to update Firestore
+        }
+        await _userService.updateUserPhoneAndTerms(currentUser.uid, phone: phone, agreedToTerms: true);
+        await savePhoneToPrefs(phone);
+      }
+    } on FirebaseAuthException catch (e) {
+      throw AuthException(e.code, e.message ?? 'Phone linking failed.');
+    } catch (e) {
+      throw AuthException('unknown', 'Failed to link phone number: ${e.toString()}');
     }
   }
 

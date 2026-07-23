@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -5,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 import 'package:agrozemex/core/theme/theme.dart';
-import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
 import 'package:agrozemex/features/maps/screens/listing_details_screen.dart';
 import '../widgets/area_stats_panel.dart';
 import '../widgets/map_action_buttons.dart';
@@ -225,7 +226,13 @@ class _MapScreenState extends State<MapScreen> {
           areaInSqMeters: _areaInSqMeters,
         ),
       ),
-    );
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          _isSaved = false;
+        });
+      }
+    });
   }
 
   void _zoomIn() {
@@ -268,8 +275,6 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // PERF FIX: Use _cachedAreaHa instead of calling _calculateAreaSqMeters() here.
-    // Previously this O(n) math loop ran on EVERY frame including animations.
     final double currentAreaHa = _cachedAreaHa;
 
     return Scaffold(
@@ -280,6 +285,11 @@ class _MapScreenState extends State<MapScreen> {
             styleUri: mapbox.MapboxStyles.SATELLITE_STREETS,
             onMapCreated: _onMapCreated,
             onTapListener: _onMapTap,
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+              Factory<OneSequenceGestureRecognizer>(
+                () => EagerGestureRecognizer(),
+              ),
+            },
           ),
 
           // Translucent Glass Header
@@ -296,59 +306,18 @@ class _MapScreenState extends State<MapScreen> {
                     top: 48,
                     left: 20,
                     right: 20,
-                    bottom: 12,
+                    bottom: 14,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.arrow_back,
-                              color: AgroZemexTokens.primary,
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                          Text(
-                            'AgroZemex',
-                            style: GoogleFonts.inter(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: AgroZemexTokens.primary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
+                  child: Center(
+                    child: Text(
+                      'AgroZemex - Sell Land',
+                      style: GoogleFonts.inter(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AgroZemexTokens.primary,
+                        letterSpacing: -0.5,
                       ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ProfileScreenDash(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AgroZemexTokens.primary,
-                              width: 2,
-                            ),
-                            image: const DecorationImage(
-                              image: NetworkImage(
-                                'https://lh3.googleusercontent.com/aida-public/AB6AXuBn_16ZaitnTSQY0WNoCE2eiBFq-mwFrahPOOlv2PjKKmUsBXjNdhKsJrnBGBPW8TcaUPrHx8bqmR2s4iys8Q2dAueIXD49Zqq_iJJ1lvS--kAEfW_CY7ARN1sbRljPHKgvkq-iz2-jzthw4OtLHA4gZ1ivNYqaPPJjMUa_KLfPT6c9xAadaPryeCEgRwf297_VVDGVNkmZhAkuzaqDTVY46ojdbteqfRJzdEX9n_j1bJrkPPx2zbQ2dQ',
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -392,17 +361,6 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'map_layer',
-                  onPressed: () {},
-                  backgroundColor: Colors.white.withValues(alpha: 0.85),
-                  elevation: 2,
-                  child: const Icon(
-                    Icons.layers,
-                    color: AgroZemexTokens.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
                 FloatingActionButton.small(
                   heroTag: 'map_location',
                   onPressed: _requestLocationAndCenterMap,

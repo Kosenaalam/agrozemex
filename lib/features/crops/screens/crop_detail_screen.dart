@@ -4,6 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:agrozemex/core/theme/theme.dart';
 import '../models/crop_card_model.dart';
 
+import 'package:provider/provider.dart';
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
+import 'package:agrozemex/features/auth/services/auth_service.dart';
+import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
+import 'package:agrozemex/shared/services/user_firestore_service.dart';
+
 class CropDetailScreen extends StatefulWidget {
   final CropCardModel item;
 
@@ -17,6 +23,40 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
   final PageController _pageController = PageController();
   int _currentImageIndex = 0;
   bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPhoneVerificationGuard();
+    });
+  }
+
+  Future<void> _checkPhoneVerificationGuard() async {
+    final auth = context.read<AuthService>();
+    final user = auth.user;
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to view crop details.')),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+
+    final userService = context.read<UserFirestoreService>();
+    final verified = await userService.isPhoneAndTermsVerified(user);
+    if (!verified && mounted) {
+      final success = await PhoneBindingDialog.show(context);
+      if (!success && mounted) {
+        Navigator.pop(context);
+        return;
+      }
+    }
+  }
 
   @override
   void dispose() {

@@ -82,8 +82,8 @@ class AreaStatsPanel extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           pointsCount > 0
-              ? 'Boundary Marked Parcel ($pointsCount Points)'
-              : "Val d'Orcia Estate",
+              ? 'Land Boundary ($pointsCount Corner Points)'
+              : 'Mark Land Boundary',
           style: AgroZemexTokens.headlineMedium.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -91,7 +91,9 @@ class AreaStatsPanel extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'Siena, Tuscany Region',
+          pointsCount > 0
+              ? 'Tap corners or drag pins to adjust boundary'
+              : 'Tap on map corners to mark land boundaries (min 3 points)',
           style: AgroZemexTokens.bodyLarge.copyWith(
             fontSize: 13,
             color: AgroZemexTokens.onSurfaceVariant,
@@ -99,7 +101,7 @@ class AreaStatsPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Area / Yield / Price Stats Row
+        // Area / Corners / Status Stats Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -115,8 +117,8 @@ class AreaStatsPanel extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   currentAreaHa > 0
-                      ? '${currentAreaHa.toStringAsFixed(1)} ha'
-                      : '$pointsCount pts',
+                      ? '${currentAreaHa.toStringAsFixed(2)} ha'
+                      : '0.0 ha',
                   style: AgroZemexTokens.bodyLarge.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -126,7 +128,7 @@ class AreaStatsPanel extends StatelessWidget {
             Column(
               children: [
                 Text(
-                  'YIELD',
+                  'CORNERS',
                   style: AgroZemexTokens.labelCaps.copyWith(
                     fontSize: 10,
                     color: AgroZemexTokens.onSurfaceVariant,
@@ -134,7 +136,7 @@ class AreaStatsPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '6.2 t/ha',
+                  '$pointsCount Points',
                   style: AgroZemexTokens.bodyLarge.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -144,7 +146,7 @@ class AreaStatsPanel extends StatelessWidget {
             Column(
               children: [
                 Text(
-                  'PRICE',
+                  'STATUS',
                   style: AgroZemexTokens.labelCaps.copyWith(
                     fontSize: 10,
                     color: AgroZemexTokens.onSurfaceVariant,
@@ -152,10 +154,12 @@ class AreaStatsPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '€4.2M',
+                  pointsCount >= 3 ? 'Ready to Save' : 'Need ${3 - pointsCount} more',
                   style: AgroZemexTokens.bodyLarge.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AgroZemexTokens.primary,
+                    color: pointsCount >= 3
+                        ? AgroZemexTokens.primary
+                        : AgroZemexTokens.onSurfaceVariant,
                   ),
                 ),
               ],

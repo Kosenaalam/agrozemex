@@ -1,0 +1,145 @@
+# AgroZemex - Software Architecture & Technical Documentation
+
+## 1. Executive Summary & Project Goal
+**AgroZemex** is a mobile/web application designed for agricultural real estate (land marketplace) and crop trading. It enables users to browse, list, buy, and sell agricultural land and crop harvests with interactive GIS Mapbox boundary drawing, location-aware search, real-time filtering, and role-based account management.
+
+---
+
+## 2. Architectural Paradigm
+
+AgroZemex follows **Clean Architecture** principles combined with a **Feature-First** project structure. This separation guarantees testability, maintainability, loose coupling, and clear boundaries between UI, business logic, and external services.
+
+```
+lib/
+├── core/                   # System initialization, global app root, and design tokens
+│   ├── app_root.dart       # Main MultiProvider and RootDecider widget
+│   ├── init.dart           # Asynchronous background service initialization
+│   └── theme/              # Design tokens (colors, typography, light theme)
+├── features/               # Feature-First Business Modules
+│   ├── admin/              # Administrative control panel
+│   ├── auth/               # Authentication (Login, Password creation, Auth Service)
+│   ├── crops/              # Crop marketplace (Home, Details, Sell, Query/Search)
+│   ├── home/               # Land marketplace (Listings, Filters, Buyer Maps)
+│   ├── maps/               # Interactive Mapbox GIS polygon drawing & area calculation
+│   ├── navigation/         # Central navigation shell & tab management
+│   ├── welcome/            # Onboarding & landing screens
+│   └── wishlist/           # User saved listings & bookmarks
+└── shared/                 # Shared cross-cutting services and widgets
+    ├── services/           # Firestore, Storage, Location, Distance, Search tokens
+    └── widget/             # Shared UI components (Land & Crop cards)
+```
+
+### Core Architecture Layers
+
+1. **Presentation Layer (`screens/`, `widgets/`)**:
+   - Contains UI screens and reusable widgets.
+   - Listens to providers for reactive UI updates.
+   - Delegates state changes and network actions to service layers.
+
+2. **Business Logic & Service Layer (`services/`)**:
+   - Encompasses authentication logic (`AuthService`), user state, querying engines (`ListingQueryService`, `CropQueryService`), and search algorithms (`ListingSearchService`, `SearchRankService`).
+   - Manages non-blocking background initialization (`AppInit`).
+
+3. **Data Layer & External Integrations (`shared/services/`)**:
+   - Communicates with external services: **Firebase Cloud Firestore**, **Firebase Auth**, **Firebase Storage**, **Mapbox SDK**, and **Geolocator**.
+   - Handles client-side indexing and search token generation (`search_token_service.dart`).
+
+---
+
+## 3. Tech Stack & Dependencies
+
+### Core Framework & UI
+- **Flutter SDK** (`^3.10.3`): Cross-platform UI toolkit.
+- **Google Fonts (`Inter`)**: Typography design system with bundled offline `.ttf` font assets.
+- **`sliding_up_panel`**: Sliding panel interface for land area stats and map details.
+
+### Backend & Cloud Services
+- **Firebase Core & Auth**: Handles identity management, email/password auth, Google Sign-In, and Apple Sign-In.
+- **Cloud Firestore**: Real-time NoSQL database for users, land listings, crop listings, and wishlists.
+- **Firebase Storage**: Secure cloud storage for image assets (crop photos, land site images).
+- **Cloud Functions**: Serverless backend routines.
+
+### Mapping & Location (GIS)
+- **`mapbox_maps_flutter`**: Map rendering, polygon creation, boundary calculations, and satellite map layers.
+- **`geolocator` & `permission_handler`**: User device GPS location tracking and dynamic permissions management.
+
+---
+
+## 4. State Management & Dependency Injection
+
+AgroZemex employs `provider` for dependency injection and state management.
+
+```dart
+// MultiProvider configuration in AppRoot
+MultiProvider(
+  providers: [
+    ChangeNotifierProvider(create: (_) => AuthService()),
+    Provider(create: (_) => UserFirestoreService()),
+    Provider(create: (_) => ListingQueryService()),
+    Provider(create: (_) => ListingSearchService()),
+    Provider(create: (_) => StorageService()),
+    Provider(create: (_) => CropQueryService()),
+    Provider(create: (_) => CropSearchService()),
+    Provider(create: (_) => WishlistService()),
+    Provider<LocationService>(create: (_) => AppInit.locationService),
+  ],
+  child: MaterialApp(...),
+)
+```
+
+### Key Service Roles
+- **`AuthService`**: Manages current `User` session, login/registration, password reset, and local user preference persistence via `SharedPreferences`.
+- **`LocationService`**: Non-blocking background GPS tracking to fetch user coordinates without delaying startup.
+- **`ListingQueryService` & `CropQueryService`**: Query builders executing paginated and filtered queries against Firestore collections.
+
+---
+
+## 5. Firestore Database Schemas
+
+### `users` Collection
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `uid` | String | Unique Firebase Auth identifier |
+| `email` | String | User email address |
+| `phone` | String | Verified contact phone number |
+| `role` | String | User role (`buyer`, `seller`, `admin`) |
+| `agreedToTerms` | Boolean | True if user accepted T&C and Privacy Policy |
+| `termsAgreedAt` | Timestamp | Timestamp when T&C legal consent was given |
+| `createdAt` | Timestamp | Account creation timestamp |
+
+### `listings` Collection (Land Marketplace)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | String | Listing ID |
+| `title` | String | Land listing title |
+| `price` | Double | Land price |
+| `areaAcres` | Double | Calculated land area in acres |
+| `location` | GeoPoint / Map | Latitude & longitude coordinates |
+| `polygonPoints` | Array<Map> | GeoJSON / LatLng polygon boundary coordinates |
+| `images` | Array<String> | Firebase Storage image URLs |
+| `sellerId` | String | Reference UID to `users` |
+| `searchTokens` | Array<String> | Lowercase prefix search tokens for indexing |
+
+### `crops` Collection (Crop Marketplace)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | String | Crop listing ID |
+| `cropName` | String | Name of the crop (e.g. Wheat, Rice) |
+| `pricePerKg` | Double | Price per unit weight |
+| `quantityAvailable`| Double | Quantity in kilograms / tons |
+| `sellerId` | String | Reference UID to `users` |
+| `images` | Array<String> | Firebase Storage image URLs |
+
+---
+
+## 6. Security & Environment Configuration
+
+### Credentials & Environment Variables
+To ensure zero exposure of secret keys:
+- Mapbox access tokens are supplied at build time via runtime environment flags (`--dart-define=MAPBOX_TOKEN=your_token`).
+- Google Auth client IDs are supplied via environment flags (`--dart-define=GOOGLE_CLIENT_ID=your_id`).
+- Local config files (`firebase_options.dart`) contain target platform metadata without exposing admin keys.
+
+### Security Best Practices
+- Validation of input forms (phone, email, password strength) prior to API submission.
+- Protected navigation routes ensuring unauthenticated users cannot access listing creation or profile actions.

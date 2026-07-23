@@ -10,6 +10,9 @@ import '../../../shared/services/storage_service.dart';
 import '../../auth/services/auth_service.dart';
 import 'package:agrozemex/core/theme/theme.dart';
 
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
+import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
+
 class ListingDetailsScreen extends StatefulWidget {
   final List<mapbox.Point> boundaryPoints;
   final double areaInSqMeters;
@@ -26,6 +29,40 @@ class ListingDetailsScreen extends StatefulWidget {
 
 class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPhoneVerificationGuard();
+    });
+  }
+
+  Future<void> _checkPhoneVerificationGuard() async {
+    final auth = context.read<AuthService>();
+    final user = auth.user;
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to list land.')),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+
+    final userService = context.read<UserFirestoreService>();
+    final verified = await userService.isPhoneAndTermsVerified(user);
+    if (!verified && mounted) {
+      final success = await PhoneBindingDialog.show(context);
+      if (!success && mounted) {
+        Navigator.pop(context);
+        return;
+      }
+    }
+  }
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
@@ -60,11 +97,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   ];
 
   Future<void> _pickImages() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    final List<XFile> images = await _picker.pickMultiImage();
 
-    if (image != null) {
+    if (images.isNotEmpty) {
       setState(() {
-        _pickedImages.add(image);
+        _pickedImages.addAll(images);
         if (_pickedImages.length > 10) {
           _pickedImages.length = 10;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -202,7 +239,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
 
               TextFormField(
                 controller: _titleController,
-                maxLength: 12,
+                maxLength: 50,
                 decoration: InputDecoration(
                   labelText: 'Land Title *',
                   prefixIcon: const Icon(Icons.title),
@@ -230,7 +267,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
 
               TextFormField(
                 controller: _villageController,
-                maxLength: 15,
+                maxLength: 40,
                 decoration: const InputDecoration(
                   labelText: 'Village Name',
                   prefixIcon: Icon(Icons.location_city),

@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String _countryCode = '+91';
   bool _isOtpSent = false;
+  bool _agreedToTerms = false;
   String? _verificationId;
   int? _resendToken;
   bool _isLoading = false;
@@ -164,7 +165,29 @@ class _LoginScreenState extends State<LoginScreen> {
     _otpCtrl.clear();
   }
 
+  void _showLegalDialog(BuildContext context, {required String title, required String content}) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title, style: AgroZemexTokens.headlineMedium.copyWith(color: AgroZemexTokens.primary)),
+        content: SingleChildScrollView(
+          child: Text(content, style: AgroZemexTokens.bodyLarge),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _sendOtp() async {
+    if (!_agreedToTerms) {
+      setState(() => _errorMessage = 'Please accept Terms & Conditions and Privacy Policy to proceed.');
+      return;
+    }
     final rawNumber = _phoneCtrl.text.trim();
     if (rawNumber.isEmpty || rawNumber.length < 7) {
       setState(() => _errorMessage = 'Please enter a valid phone number.');
@@ -238,6 +261,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleSignIn() async {
+    if (!_agreedToTerms) {
+      setState(() => _errorMessage = 'Please accept Terms & Conditions and Privacy Policy to proceed.');
+      return;
+    }
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -258,6 +285,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _appleSignIn() async {
+    if (!_agreedToTerms) {
+      setState(() => _errorMessage = 'Please accept Terms & Conditions and Privacy Policy to proceed.');
+      return;
+    }
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -533,8 +564,84 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
 
-                        const SizedBox(height: 24),
+                        // Mandatory Terms & Privacy Checkbox
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: _agreedToTerms,
+                                activeColor: AgroZemexTokens.primary,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _agreedToTerms = val ?? false;
+                                    if (_agreedToTerms) _errorMessage = null;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Wrap(
+                                children: [
+                                  Text(
+                                    'I agree to the ',
+                                    style: AgroZemexTokens.bodyMedium.copyWith(fontSize: 12),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => _showLegalDialog(
+                                      context,
+                                      title: 'Terms & Conditions',
+                                      content: 'Welcome to AgroZemex. By registering or using our platform, you agree to list genuine agricultural property or crops, maintain accurate contact details, and consent to allow interested sellers and buyers to view your registered contact number to initiate purchase/inquiry calls.',
+                                    ),
+                                    child: Text(
+                                      'Terms & Conditions',
+                                      style: AgroZemexTokens.bodyMedium.copyWith(
+                                        fontSize: 12,
+                                        color: AgroZemexTokens.primary,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    ' & ',
+                                    style: AgroZemexTokens.bodyMedium.copyWith(fontSize: 12),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => _showLegalDialog(
+                                      context,
+                                      title: 'Privacy Policy',
+                                      content: 'AgroZemex prioritizes your data privacy. Your contact details are stored securely. By agreeing, you authorize AgroZemex to display your phone number exclusively to verified land and crop marketplace users for transaction inquiries.',
+                                    ),
+                                    child: Text(
+                                      'Privacy Policy',
+                                      style: AgroZemexTokens.bodyMedium.copyWith(
+                                        fontSize: 12,
+                                        color: AgroZemexTokens.primary,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    '. Sellers/buyers can view your phone number for inquiries.',
+                                    style: AgroZemexTokens.bodyMedium.copyWith(
+                                      fontSize: 12,
+                                      color: AgroZemexTokens.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
 
                         // Send OTP Button
                         _isLoading

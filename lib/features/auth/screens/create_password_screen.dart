@@ -24,6 +24,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
   bool _obscurePass = true;
   bool _obscureConfirmPass = true;
   bool _isLoading = false;
+  bool _agreedToTerms = false;
   String? _errorMessage;
 
   @override
@@ -204,7 +205,34 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 36),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: _agreedToTerms,
+                      activeColor: AgroZemexTokens.primary,
+                      onChanged: (val) {
+                        setState(() {
+                          _agreedToTerms = val ?? false;
+                          if (_agreedToTerms) _errorMessage = null;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'I agree to the Terms & Conditions and Privacy Policy, and consent to sharing my registered contact phone number with sellers/buyers for inquiries.',
+                      style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[700]),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : SizedBox(
@@ -212,6 +240,12 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                       height: 52,
                       child: ElevatedButton(
                         onPressed: () async {
+                          if (!_agreedToTerms) {
+                            setState(
+                              () => _errorMessage = 'Please accept Terms & Conditions and Privacy Policy to proceed.',
+                            );
+                            return;
+                          }
                           final pass = _passCtrl.text.trim();
                           final confirmPass = _confirmPassCtrl.text.trim();
 

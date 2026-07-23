@@ -14,6 +14,10 @@ import 'package:agrozemex/shared/services/wishlist_service.dart';
 import 'package:provider/provider.dart';
 import '../../auth/services/auth_service.dart';
 
+import 'package:agrozemex/features/auth/screens/login_screen.dart';
+import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
+import 'package:agrozemex/shared/services/user_firestore_service.dart';
+
 class ListingDetailScreen extends StatefulWidget {
   final String listingId;
   final String title;
@@ -50,6 +54,38 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   void initState() {
     super.initState();
     _loadBlueCircleIcon();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPhoneVerificationGuard();
+    });
+  }
+
+  Future<void> _checkPhoneVerificationGuard() async {
+    final auth = context.read<AuthService>();
+    final user = auth.user;
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to view listing details.')),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+
+    final userService = context.read<UserFirestoreService>();
+    final verified = await userService.isPhoneAndTermsVerified(user);
+    if (!verified && mounted) {
+      final success = await PhoneBindingDialog.show(context);
+      if (!success && mounted) {
+        Navigator.pop(context);
+        return;
+      }
+    }
+    if (mounted) {
+      // Verified phone & terms consent successfully
+    }
   }
 
   Future<void> _loadBlueCircleIcon() async {
