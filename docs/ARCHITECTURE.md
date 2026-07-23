@@ -63,6 +63,10 @@ lib/
 - **`mapbox_maps_flutter`**: Map rendering, polygon creation, boundary calculations, and satellite map layers.
 - **`geolocator` & `permission_handler`**: User device GPS location tracking and dynamic permissions management.
 
+### Network Connectivity & Offline Architecture
+- **`ConnectivityService` (`core/services/connectivity_service.dart`)**: Reactive network monitor extending `ChangeNotifier`. Listens to hardware connectivity changes via `connectivity_plus` and verifies WAN internet reachability using active socket pings.
+- **`OfflineBanner` (`shared/widget/offline_banner.dart`)**: Animated global top banner providing real-time visual feedback when internet connection drops (`📡 Offline Mode Active`) or reconnects (`✓ Connection Restored`). Prepares the app for Hive offline data fallback.
+
 ---
 
 ## 4. State Management & Dependency Injection

@@ -15,6 +15,7 @@ import '../shared/services/wishlist_service.dart';
 import 'init.dart';
 import 'theme/theme.dart';
 
+import 'package:agrozemex/core/services/connectivity_service.dart';
 import '../shared/services/visit_booking_service.dart';
 
 class AppRoot extends StatelessWidget {
@@ -24,6 +25,7 @@ class AppRoot extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ConnectivityService()),
         ChangeNotifierProvider(create: (_) => AuthService()),
         Provider(create: (_) => UserFirestoreService()),
         Provider(create: (_) => ListingQueryService()),

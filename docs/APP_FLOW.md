@@ -173,6 +173,30 @@ flowchart TD
     F --> G[Invoke Native Device System Share Sheet share_plus]
     B --> H[Option 3: Tap Copy Share Details]
     H --> I[Copy Formatted Summary to Device Clipboard & Show SnackBar]
+### 4.8 Land Home Screen Shimmer Skeleton Loading Flow
+
+```mermaid
+flowchart TD
+    A[Buyer Navigates to HomeScreen] --> B{_listings.isEmpty && _isLoading?}
+    B -- Yes: Initial Load --> C[Render 3 Vertical LandCardShimmer Skeleton Cards]
+    B -- No --> D{_listings.isEmpty && !_isLoading?}
+    D -- Yes: No Results --> E[Display No Listings Found Text]
+    D -- No: Listings Present --> F[Render CustomScrollView with Property Cards]
+    F --> G[User Scrolls to Bottom triggering _loadMore]
+    G --> H[Append 1 LandCardShimmer Card at Bottom of SliverList]
+    H --> I[Firestore Returns Next Page -> Replace Shimmer with Actual Property Card]
+### 4.9 Real-Time Connectivity Monitoring & Offline Banner Flow
+
+```mermaid
+flowchart TD
+    A[ConnectivityService Listens to Hardware & Active Socket Ping] --> B{Internet Connection Active?}
+    B -- No / Network Dropped --> C[Update ConnectivityService isConnected = false]
+    C --> D[OfflineBanner Animates Down Top Amber/Red Bar]
+    D --> E[Display 📡 No Internet Connection • Offline Mode]
+    B -- Yes / Network Restored --> F{Was App Previously Offline?}
+    F -- Yes --> G[Update ConnectivityService isConnected = true]
+    G --> H[OfflineBanner Animates Green Bar: ✓ Connection Restored]
+    H --> I[Auto-Dismiss Green Banner After 3 Seconds]
 ```
 
 ---

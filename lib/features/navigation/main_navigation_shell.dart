@@ -10,6 +10,8 @@ import 'package:agrozemex/features/home/screens/home_screen.dart';
 import 'package:agrozemex/features/maps/screens/map_screen.dart';
 import 'package:agrozemex/shared/services/custom_bottom_nav.dart';
 
+import 'package:agrozemex/shared/widget/offline_banner.dart';
+
 /// Centralized production Navigation Shell for AgroZemex.
 /// Hosts an IndexedStack of the 5 primary tabs to maintain state,
 /// prevent memory leaks, and provide instant tab switching.
@@ -85,16 +87,18 @@ class MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: List.generate(_screens.length, (index) {
-          return _loaded[index] ? _screens[index] : const SizedBox.shrink();
-        }),
-      ),
-      bottomNavigationBar: CustomBottomNav(
-        currentIndex: _selectedIndex,
-        onTap: _onTabSelected,
+    return OfflineBanner(
+      child: Scaffold(
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: List.generate(_screens.length, (index) {
+            return _loaded[index] ? _screens[index] : const SizedBox.shrink();
+          }),
+        ),
+        bottomNavigationBar: CustomBottomNav(
+          currentIndex: _selectedIndex,
+          onTap: _onTabSelected,
+        ),
       ),
     );
   }

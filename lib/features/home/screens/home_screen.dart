@@ -14,6 +14,7 @@ import '../models/listing_filter_model.dart';
 import '../services/listing_query_service.dart';
 import '../screens/listing_detail_screen.dart';
 import 'package:agrozemex/shared/services/wishlist_service.dart';
+import 'package:agrozemex/shared/widget/land_card_shimmer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -680,7 +681,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             // Dynamic Bento Property Grid
-            if (_listings.isEmpty && !_isLoading)
+            if (_listings.isEmpty && _isLoading)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AgroZemexTokens.marginMobile,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => const LandCardShimmer(),
+                    childCount: 3,
+                  ),
+                ),
+              )
+            else if (_listings.isEmpty && !_isLoading)
               SliverFillRemaining(
                 child: Center(
                   child: Text(
@@ -697,10 +710,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
                     if (index == _listings.length) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24.0),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
+                      return const LandCardShimmer();
                     }
 
                     // Render Map Callout Banner after 3rd item
