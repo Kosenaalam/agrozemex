@@ -48,10 +48,17 @@ class CropCardModel {
       village: data['village'] ?? 'Unknown',
       location: data['location'] is GeoPoint
           ? data['location'] as GeoPoint
-          : const GeoPoint(0, 0),
+          : (data['location'] is Map
+              ? GeoPoint(
+                  ((data['location'] as Map)['lat'] as num?)?.toDouble() ?? 0.0,
+                  ((data['location'] as Map)['lng'] as num?)?.toDouble() ?? 0.0,
+                )
+              : const GeoPoint(0, 0)),
       createdAt: data['created_at'] is Timestamp
           ? data['created_at'] as Timestamp
-          : Timestamp.now(),
+          : (data['created_at'] is int
+              ? Timestamp.fromMillisecondsSinceEpoch(data['created_at'] as int)
+              : Timestamp.now()),
       isActive: data['is_active'] as bool? ?? true,
       searchTokens: List<String>.from(data['search_tokens'] ?? []),
       createdBy: data['created_by'] ?? '',

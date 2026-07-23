@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/shared/services/storage_service.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
+import 'package:agrozemex/shared/services/location_service.dart';
 import 'package:agrozemex/features/auth/services/auth_service.dart';
 
 class CropSellScreen extends StatefulWidget {
@@ -45,17 +46,57 @@ class _CropSellScreenState extends State<CropSellScreen> {
   ];
   final List<String> _units = ['kg', 'ton', 'quintal'];
 
+  bool get _hasUnsavedData =>
+      _pickedImages.isNotEmpty ||
+      _titleController.text.trim().isNotEmpty ||
+      _priceController.text.trim().isNotEmpty ||
+      _quantityController.text.trim().isNotEmpty ||
+      _descriptionController.text.trim().isNotEmpty ||
+      _villageController.text.trim().isNotEmpty;
+
+  Future<bool> _showDiscardDialog() async {
+    if (!_hasUnsavedData) return true;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Discard Unsaved Draft?'),
+        content: const Text(
+          'You have unsaved harvest listing details. Are you sure you want to discard them?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Editing'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AgroZemexTokens.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Discard',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   Future<void> _pickImages() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    final List<XFile> selected = await _picker.pickMultiImage();
+    if (selected.isNotEmpty) {
       setState(() {
-        if (_pickedImages.length >= 5) {
+        final availableSlots = 5 - _pickedImages.length;
+        if (availableSlots <= 0) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Maximum limit of 5 photos reached.')),
           );
           return;
         }
-        _pickedImages.add(image);
+        _pickedImages.addAll(selected.take(availableSlots));
       });
     }
   }
@@ -83,48 +124,64 @@ class _CropSellScreenState extends State<CropSellScreen> {
   }
 
   Future<void> _getLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!mounted) return;
-    if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location services disabled')),
+    final singleton = LocationService();
+    if (singleton.currentPosition != null) {
+      _location = GeoPoint(
+        singleton.currentPosition!.latitude,
+        singleton.currentPosition!.longitude,
       );
+      return;
+    }
+
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!mounted || !serviceEnabled) {
+      _location ??= const GeoPoint(20.5937, 78.9629);
       return;
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (!mounted) return;
-      if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission denied')),
-        );
+      if (!mounted || permission == LocationPermission.denied) {
+        _location ??= const GeoPoint(20.5937, 78.9629);
         return;
       }
     }
-    if (!mounted) return;
-    if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location permission permanently denied')),
-      );
+    if (!mounted || permission == LocationPermission.deniedForever) {
+      _location ??= const GeoPoint(20.5937, 78.9629);
       return;
     }
 
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    _location = GeoPoint(position.latitude, position.longitude);
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      ).timeout(const Duration(seconds: 5));
+      if (mounted) {
+        setState(() {
+          _location = GeoPoint(position.latitude, position.longitude);
+        });
+      }
+    } catch (_) {
+      _location ??= const GeoPoint(20.5937, 78.9629);
+    }
   }
 
   void _submitCrop() async {
-    if (_location == null) {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    final parsedPrice = double.tryParse(_priceController.text);
+    if (parsedPrice == null || parsedPrice <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: Location not determined yet. Please check permissions.')),
+        const SnackBar(content: Text('Please enter a valid price greater than 0')),
       );
       return;
     }
-    if (!_formKey.currentState!.validate()) {
+    final parsedQty = double.tryParse(_quantityController.text);
+    if (parsedQty == null || parsedQty <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid quantity greater than 0')),
+      );
       return;
     }
     if (_cropType == null) {
@@ -140,22 +197,24 @@ class _CropSellScreenState extends State<CropSellScreen> {
       return;
     }
 
+    _location ??= const GeoPoint(20.5937, 78.9629);
+
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
     try {
       final storageService = context.read<StorageService>();
       final files = _pickedImages.map((e) => File(e.path)).toList();
       final imageUrls = await storageService.uploadListingImages(files);
-       if (!mounted) return;
-       final auth = context.read<AuthService>();
+      if (!mounted) return;
+      final auth = context.read<AuthService>();
       if (auth.user == null) throw Exception('User not logged in');
       final firestoreService = context.read<UserFirestoreService>();
       await firestoreService.saveCropListing(
         uid: auth.user!.uid,
         title: _titleController.text,
-        price: double.parse(_priceController.text),
+        price: parsedPrice,
         description: _descriptionController.text,
-        quantity: double.parse(_quantityController.text),
+        quantity: parsedQty,
         photoPaths: imageUrls,
         cropType: _cropType!,
         unit: _unit!,
@@ -179,15 +238,29 @@ class _CropSellScreenState extends State<CropSellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AgroZemexTokens.surface,
-      appBar: AppBar(
+    return PopScope(
+      canPop: !_hasUnsavedData,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _showDiscardDialog();
+        if (shouldPop && context.mounted) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
         backgroundColor: AgroZemexTokens.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: AgroZemexTokens.onSurface),
-          onPressed: () => Navigator.pop(context),
-        ),
+        appBar: AppBar(
+          backgroundColor: AgroZemexTokens.surface,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: AgroZemexTokens.onSurface),
+            onPressed: () async {
+              final shouldPop = await _showDiscardDialog();
+              if (shouldPop && context.mounted) {
+                Navigator.pop(context);
+              }
+            },
+          ),
         title: Text(
           'Sell Your Harvest',
           style: AgroZemexTokens.headlineMedium.copyWith(
@@ -546,6 +619,7 @@ class _CropSellScreenState extends State<CropSellScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }

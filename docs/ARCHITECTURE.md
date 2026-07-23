@@ -68,7 +68,13 @@ lib/
 ### Network Connectivity & Offline Architecture
 - **`ConnectivityService` (`core/services/connectivity_service.dart`)**: Reactive network monitor extending `ChangeNotifier`. Listens to hardware connectivity changes via `connectivity_plus` and verifies WAN internet reachability using active socket pings.
 - **`OfflineBanner` (`shared/widget/offline_banner.dart`)**: Animated global top banner providing real-time visual feedback when internet connection drops (`📡 Offline Mode Active`) or reconnects (`✓ Connection Restored`).
-- **`HiveCacheService` (`shared/services/hive_cache_service.dart`)**: High-performance key-value disk caching layer (`hive_flutter`). Manages `land_listings_box`, `crop_listings_box`, and `user_preferences_box`. Automatically synchronizes online Firestore payloads to local disk and triggers transparent offline fallbacks in `ListingQueryService` and `CropQueryService`.
+- **`HiveCacheService` (`shared/services/hive_cache_service.dart`)**: High-performance key-value disk caching layer (`hive_flutter`). Manages `land_listings_box`, `crop_listings_box`, and `user_preferences_box`. Includes `_sanitizeForJson` recursive transformer converting Cloud Firestore custom instances (`Timestamp`, `GeoPoint`) to primitive JSON types (`int`, `Map`) to eliminate binary encoding exceptions. Automatically synchronizes online Firestore payloads to local disk and triggers transparent offline fallbacks in `ListingQueryService` and `CropQueryService`.
+
+### Crops Marketplace Engine
+- **`CropSellScreen` (`features/crops/screens/crop_sell_screen.dart`)**: Form-hardened harvest creation interface with `PopScope` unsaved draft protection, multi-image batch picker (`pickMultiImage`), 5s GPS location timeout fallback, and strict positive validation.
+- **`CropDetailScreen` (`features/crops/screens/crop_detail_screen.dart`)**: Streamlined harvest detail screen featuring an inline Land-Style Verified Crop Seller Card with phone reveal, direct Call (`tel:`), WhatsApp (`whatsapp://`), and SMS (`sms:`) actions.
+- **`CropCardShimmer` (`shared/widget/crop_card_shimmer.dart`)**: Skeleton loading widget providing smooth visual feedback on `CropHomeScreen` initial load and pagination.
+- **`UniversalImageWidget` (`shared/widget/universal_image_widget.dart`)**: Universal production-grade image renderer routing network URLs, local file paths, and assets with fallback boundaries to eliminate main-isolate ANR freezes.
 
 ---
 

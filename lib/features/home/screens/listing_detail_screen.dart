@@ -93,6 +93,67 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
 
+  Future<void> _callPhone(String phone) async {
+    if (!_isSellerPhoneRevealed) {
+      await _handleRevealSellerPhone(phone);
+      if (!_isSellerPhoneRevealed) return;
+    }
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final uri = Uri.parse('tel:$cleanPhone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not dial $phone')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openWhatsApp(String phone, String landTitle) async {
+    if (!_isSellerPhoneRevealed) {
+      await _handleRevealSellerPhone(phone);
+      if (!_isSellerPhoneRevealed) return;
+    }
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final msg = Uri.encodeComponent('Hello, I am interested in your land listing "$landTitle" on AgroZemex.');
+    final uri = Uri.parse('whatsapp://send?phone=$cleanPhone&text=$msg');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      final webUri = Uri.parse('https://wa.me/$cleanPhone?text=$msg');
+      if (await canLaunchUrl(webUri)) {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('WhatsApp is not installed on this device')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _sendSms(String phone, String landTitle) async {
+    if (!_isSellerPhoneRevealed) {
+      await _handleRevealSellerPhone(phone);
+      if (!_isSellerPhoneRevealed) return;
+    }
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final msg = Uri.encodeComponent('Hello, I am interested in your land listing "$landTitle" on AgroZemex.');
+    final uri = Uri.parse('sms:$cleanPhone?body=$msg');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open SMS for $phone')),
+        );
+      }
+    }
+  }
+
   Future<Map<String, dynamic>> _fetchListingData() async {
     try {
       final doc = await FirebaseFirestore.instance
@@ -1140,6 +1201,68 @@ View complete boundary, soil & water details on AgroZemex Land Marketplace!
                                           ),
                                         ),
                                       ),
+                                    ),
+                                  ],
+                                  if (_isSellerPhoneRevealed) ...[
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AgroZemexTokens.primary,
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                            onPressed: () => _callPhone(sellerPhone.isNotEmpty ? sellerPhone : '9876543210'),
+                                            icon: const Icon(Icons.phone, size: 16, color: Colors.white),
+                                            label: const Text(
+                                              'Call Seller',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF25D366),
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                            onPressed: () => _openWhatsApp(sellerPhone.isNotEmpty ? sellerPhone : '9876543210', widget.title),
+                                            icon: const Icon(Icons.chat, size: 16, color: Colors.white),
+                                            label: const Text(
+                                              'WhatsApp',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        OutlinedButton(
+                                          style: OutlinedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                            side: const BorderSide(color: AgroZemexTokens.primary),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          onPressed: () => _sendSms(sellerPhone.isNotEmpty ? sellerPhone : '9876543210', widget.title),
+                                          child: const Icon(Icons.message, size: 18, color: AgroZemexTokens.primary),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ],

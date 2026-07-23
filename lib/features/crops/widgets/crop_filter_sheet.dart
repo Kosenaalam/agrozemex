@@ -19,7 +19,8 @@ class CropFilterSheet extends StatefulWidget {
     required double maxDistance,
     required double minPrice,
     required double maxPrice,
-  }) onApply;
+  })
+  onApply;
   final VoidCallback onReset;
 
   const CropFilterSheet({
@@ -57,8 +58,8 @@ class _CropFilterSheetState extends State<CropFilterSheet> {
     _villageController = TextEditingController(text: widget.initialVillage);
     _useLocationFilter = widget.initialUseLocation;
     _maxDistance = widget.initialMaxDistance;
-    _minPrice = widget.initialMinPrice;
-    _maxPrice = widget.initialMaxPrice;
+    _minPrice = widget.initialMinPrice.clamp(0.0, 1000000.0);
+    _maxPrice = widget.initialMaxPrice.clamp(0.0, 1000000.0);
   }
 
   @override
@@ -93,10 +94,7 @@ class _CropFilterSheetState extends State<CropFilterSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Filters',
-                style: AgroZemexTokens.headlineMedium,
-              ),
+              Text('Filters', style: AgroZemexTokens.headlineMedium),
               TextButton(
                 onPressed: widget.onReset,
                 child: Text(
@@ -121,7 +119,12 @@ class _CropFilterSheetState extends State<CropFilterSheet> {
             ),
             isExpanded: true,
             items: widget.cropTypes
-                .map((e) => DropdownMenuItem(value: e == 'All' ? null : e, child: Text(e)))
+                .map(
+                  (e) => DropdownMenuItem(
+                    value: e == 'All' ? null : e,
+                    child: Text(e),
+                  ),
+                )
                 .toList(),
             onChanged: (v) => setState(() => _selectedCropType = v),
           ),
@@ -188,10 +191,13 @@ class _CropFilterSheetState extends State<CropFilterSheet> {
           ),
           RangeSlider(
             min: 0.0,
-            max: 10000.0,
+            max: 1000000.0,
             divisions: 100,
             activeColor: AgroZemexTokens.primary,
-            values: RangeValues(_minPrice, _maxPrice),
+            values: RangeValues(
+              _minPrice.clamp(0.0, 1000000.0),
+              _maxPrice.clamp(0.0, 1000000.0),
+            ),
             labels: RangeLabels(
               '₹${_minPrice.round()}',
               '₹${_maxPrice.round()}',

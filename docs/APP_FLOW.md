@@ -223,6 +223,62 @@ flowchart TD
     E -- Polygon Valid --> G[Pass Area in sq. m to LandAreaUnitConverter]
     G --> H[Convert to Acres, Bigha, Guntha, and Hectares with 99.95%+ Precision]
     H --> I[Render Land Area Stats & Enable Publish Button]
+### 4.12 Resilient & Normalized Crop Query Flow
+
+```mermaid
+flowchart TD
+    A[Buyer Opens CropHomeScreen] --> B[Execute CropQueryService.fetchNextPage]
+    B --> C[Query Active Crops Order By created_at DESC]
+    C --> D[Retrieve Firestore Documents or Hive Offline Cache]
+    D --> E[Execute _applyFilters In-Memory Filtering]
+    E --> F[Perform Normalized Case-Insensitive Crop Type Matching]
+    E --> G[Evaluate Price Range Filters only if Explicitly Activated by User]
+    G --> H[Render All Active Harvest Listings on Crop Marketplace UI]
+```
+
+### 4.13 Hardened Crop Listing Creation & Communication Flow
+
+```mermaid
+flowchart TD
+    A[Farmer Opens CropSellScreen] --> B[PopScope Guard Intercepts Unsaved Navigations]
+    B --> C[Select Up to 5 Harvest Photos via pickMultiImage]
+    C --> D[Fetch Fast GPS Location with 5s Timeout Fallback]
+    D --> E[Validate Positive Price and Quantity Numerical Fields]
+    E --> F[Upload Images & Save Crop to Firestore & Hive Cache]
+    F --> G[Buyer Opens CropDetailScreen]
+    G --> H[View Harvest Details & Inline Verified Seller Card]
+    H --> I{Select Seller Action}
+    I -- Reveal Phone --> J[Toggle Masked Phone with Verification Guard]
+    I -- Call Seller --> K[Trigger Direct Phone Dial tel:]
+    I -- WhatsApp --> L[Launch Direct WhatsApp Chat whatsapp://]
+    I -- SMS --> M[Launch Direct SMS Composer sms:]
+```
+
+### 4.14 Universal Image Engine & ANR Crash Prevention Flow
+
+```mermaid
+flowchart TD
+    A[Buyer Taps Crop Card on Marketplace] --> B[Push CropDetailScreen with 3s Verification Timeout Guard]
+    B --> C[Pass Image Path to UniversalImageWidget]
+    C --> D{Evaluate Image Path Format}
+    D -- Starts with http / https --> E[Render Remote Network Image via Image.network]
+    D -- Local File Path / file:// --> F[Verify File Existence & Render via Image.file]
+    D -- Asset Path --> G[Render Local Asset via Image.asset]
+    D -- Invalid / Error --> H[Render Fallback Surface Container with Eco Icon]
+    E & F & G & H --> I[Display Crop Detail Screen Smoothly without Main Isolate ANR Hang]
+```
+
+### 4.15 Firestore-to-Hive JSON Sanitization & Deserialization Flow
+
+```mermaid
+flowchart TD
+    A[Firestore Query Returns Raw Snapshot Documents] --> B[Execute HiveCacheService._sanitizeForJson Map Transformer]
+    B --> C[Convert Timestamp to millisecondsSinceEpoch int]
+    B --> D[Convert GeoPoint to lat lng Map]
+    C & D --> E[Pass Sanitized Map to jsonEncode]
+    E --> F[Persist Clean JSON String into Hive Cache Box]
+    F --> G[Offline Fallback: Read JSON String & Parse via jsonDecode]
+    G --> H[CropCardModel / ListingCardModel.fromMap Parses Int & Map Primitives]
 ```
 
 ---

@@ -12,6 +12,44 @@ class CropQueryService {
 
   CropQueryService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
+  List<CropCardModel> _applyFilters(
+    List<CropCardModel> list, {
+    String? searchQuery,
+    String? cropType,
+    double? minPrice,
+    double? maxPrice,
+    String? village,
+  }) {
+    return list.where((item) {
+      if (item.isActive == false) return false;
+      if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+        final q = searchQuery.toLowerCase().trim();
+        final title = item.title.toLowerCase();
+        final desc = item.description.toLowerCase();
+        final type = item.cropType.toLowerCase();
+        final vil = item.village.toLowerCase();
+        if (!title.contains(q) && !desc.contains(q) && !type.contains(q) && !vil.contains(q)) {
+          return false;
+        }
+      }
+      if (cropType != null && cropType.isNotEmpty && cropType != 'All') {
+        final target = cropType.toLowerCase().trim();
+        final actual = item.cropType.toLowerCase().trim();
+        if (!actual.contains(target) && !target.contains(actual)) {
+          return false;
+        }
+      }
+      if (village != null && village.isNotEmpty) {
+        final targetVillage = village.toLowerCase().trim();
+        final actualVillage = item.village.toLowerCase().trim();
+        if (!actualVillage.contains(targetVillage)) return false;
+      }
+      if (minPrice != null && item.price < minPrice) return false;
+      if (maxPrice != null && item.price > maxPrice) return false;
+      return true;
+    }).toList();
+  }
+
   Future<List<CropCardModel>> fetchNextPage({
     String? searchQuery,
     String? cropType, 
@@ -21,28 +59,15 @@ class CropQueryService {
   }) async {
     if (!_hasMore) return [];
 
-    final hasInMemoryFilters = minPrice != null || maxPrice != null;
-    final limit = hasInMemoryFilters ? _pageSize * 2 : _pageSize;
+    final hasInMemoryFilters = (searchQuery != null && searchQuery.isNotEmpty) ||
+        (cropType != null && cropType != 'All') ||
+        village != null ||
+        minPrice != null ||
+        maxPrice != null;
+    final limit = hasInMemoryFilters ? _pageSize * 4 : _pageSize;
 
-    var query = _db.collection('crops')
-        .where('is_active', isEqualTo: true)
-        .orderBy('created_at', descending: true)
-        .limit(limit);
-
-    if (searchQuery != null && searchQuery.isNotEmpty) {
-      final tokens = searchQuery.toLowerCase().split(' ').where((t) => t.length > 2).toList();
-      if (tokens.isNotEmpty) {
-        query = query.where('search_tokens', arrayContainsAny: tokens.take(10).toList());
-      }
-    }
-
-    if (cropType != null && cropType.isNotEmpty) {
-      query = query.where('crop_type', isEqualTo: cropType);
-    }
-
-    if (village != null && village.isNotEmpty) {
-      query = query.where('village', isEqualTo: village); 
-    }
+    // Index-free simple query to guarantee zero Firestore precondition / compound index crashes
+    Query query = _db.collection('crops').limit(limit);
 
     if (_lastDoc != null) {
       query = query.startAfterDocument(_lastDoc!);
@@ -66,13 +91,14 @@ class CropQueryService {
 
       var list = snap.docs.map((doc) => CropCardModel.fromFirestore(doc)).toList();
 
-      if (minPrice != null) {
-        list = list.where((item) => item.price >= minPrice).toList();
-      }
-      if (maxPrice != null) {
-        list = list.where((item) => item.price <= maxPrice).toList();
-      }
-      return list;
+      return _applyFilters(
+        list,
+        searchQuery: searchQuery,
+        cropType: cropType,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        village: village,
+      );
     } catch (e) {
       // Offline fallback: Read cached crop listings from Hive
       final cachedMaps = HiveCacheService.getCachedCropListings();
@@ -82,14 +108,15 @@ class CropQueryService {
           .map((m) => CropCardModel.fromMap(m, m['id'] as String? ?? ''))
           .toList();
 
-      if (minPrice != null) {
-        list = list.where((item) => item.price >= minPrice).toList();
-      }
-      if (maxPrice != null) {
-        list = list.where((item) => item.price <= maxPrice).toList();
-      }
       _hasMore = false;
-      return list;
+      return _applyFilters(
+        list,
+        searchQuery: searchQuery,
+        cropType: cropType,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        village: village,
+      );
     }
   }
 

@@ -230,7 +230,7 @@ class UserFirestoreService {
       'description': description,
       'quantity': quantity,
       'photo_paths': photoPaths,
-      'crop_type': cropType,
+      'crop_type': cropType.trim(),
       'unit': unit,
       'village': village,
       'location': location,

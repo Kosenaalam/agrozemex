@@ -19,6 +19,7 @@ import '../widgets/crop_search_bar.dart';
 import '../widgets/crop_type_chips.dart';
 import '../widgets/crop_filter_sheet.dart';
 import '../widgets/crop_grid_item.dart';
+import 'package:agrozemex/shared/widget/crop_card_shimmer.dart';
 
 class CropHomeScreen extends StatefulWidget {
   const CropHomeScreen({super.key});
@@ -38,8 +39,9 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
   Timer? _debounce;
 
   String? _selectedCropType;
+  bool _isPriceFilterActive = false;
   double _minPrice = 0.0;
-  double _maxPrice = 10000.0;
+  double _maxPrice = 1000000.0;
   String _villageFilter = '';
   double _maxDistance = 50.0;
   Position? _userPosition;
@@ -138,8 +140,8 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
       final newListings = await service.fetchNextPage(
         searchQuery: _searchQuery,
         cropType: _selectedCropType != 'All' ? _selectedCropType : null,
-        minPrice: _minPrice,
-        maxPrice: _maxPrice,
+        minPrice: _isPriceFilterActive ? _minPrice : null,
+        maxPrice: _isPriceFilterActive ? _maxPrice : null,
         village: _villageFilter.isNotEmpty ? _villageFilter : null,
       );
 
@@ -226,6 +228,7 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
                   _maxDistance = maxDistance;
                   _minPrice = minPrice;
                   _maxPrice = maxPrice;
+                  _isPriceFilterActive = true;
                 });
                 Navigator.pop(context);
                 _applyFilters();
@@ -237,7 +240,8 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
               _useLocationFilter = false;
               _maxDistance = 50;
               _minPrice = 0;
-              _maxPrice = 10000;
+              _maxPrice = 1000000;
+              _isPriceFilterActive = false;
             });
             Navigator.pop(context);
             _applyFilters();
@@ -488,91 +492,106 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
             // Grid / Feed of Crop Cards
-            _listings.isEmpty && !_isLoading
-                ? SliverToBoxAdapter(
-                    child: Container(
-                      padding: const EdgeInsets.all(40),
-                      alignment: Alignment.center,
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.eco_outlined,
-                            size: 64,
-                            color: AgroZemexTokens.onSurfaceVariant,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No crop harvests found',
-                            style: AgroZemexTokens.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Try adjusting your search keywords or price filters',
-                            style: AgroZemexTokens.bodyMedium.copyWith(
-                              color: AgroZemexTokens.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverGrid(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        if (index == _listings.length) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: AgroZemexTokens.primary,
-                            ),
-                          );
-                        }
-                        double? distance;
-                        if (_useLocationFilter && _userPosition != null) {
-                          distance = _calculateDistance(
-                            _listings[index].location,
-                          );
-                        }
-                        return CropGridItem(
-                          item: _listings[index],
-                          distance: distance,
-                          onTap: () {
-                            final auth = context.read<AuthService>();
-                            if (auth.user != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      CropDetailScreen(item: _listings[index]),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('please login first'),
-                                ),
-                              );
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (contxt) => const LoginScreen(),
-                                ),
-                              );
-                            }
-                          },
-                        );
-                      }, childCount: _listings.length + (_isLoading ? 1 : 0)),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.72,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                    ),
+            if (_listings.isEmpty && _isLoading)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => const CropCardShimmer(),
+                    childCount: 4,
                   ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.72,
+                  ),
+                ),
+              )
+            else if (_listings.isEmpty && !_isLoading)
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.all(40),
+                  alignment: Alignment.center,
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.eco_outlined,
+                        size: 64,
+                        color: AgroZemexTokens.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No crop harvests found',
+                        style: AgroZemexTokens.bodyLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Try adjusting your search keywords or price filters',
+                        style: AgroZemexTokens.bodyMedium.copyWith(
+                          color: AgroZemexTokens.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      if (index >= _listings.length) {
+                        return const CropCardShimmer();
+                      }
+                      double? distance;
+                      if (_useLocationFilter && _userPosition != null) {
+                        distance = _calculateDistance(
+                          _listings[index].location,
+                        );
+                      }
+                      return CropGridItem(
+                        item: _listings[index],
+                        distance: distance,
+                        onTap: () {
+                          final auth = context.read<AuthService>();
+                          if (auth.user != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    CropDetailScreen(item: _listings[index]),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('please login first'),
+                              ),
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (contxt) => const LoginScreen(),
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                    childCount: _listings.length + (_isLoading ? 2 : 0),
+                  ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.72,
+                  ),
+                ),
+              ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
@@ -645,6 +664,7 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'crop_home_sell_fab',
         onPressed: () {
           final shell = MainNavigationShell.of(context);
           if (shell != null) {
@@ -1118,6 +1138,7 @@ class _OldCropHomeScreenState extends State<_OldCropHomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'crop_search_sell_fab',
         onPressed: () {
           Navigator.push(
             context,

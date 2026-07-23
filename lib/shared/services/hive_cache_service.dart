@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -12,6 +13,36 @@ class HiveCacheService {
   static Box<String>? _landBox;
   static Box<String>? _cropBox;
   static Box<dynamic>? _userBox;
+
+  /// Recursively converts Cloud Firestore custom instances (Timestamp, GeoPoint)
+  /// into standard JSON-encodable primitives (int, Map).
+  static Map<String, dynamic> _sanitizeForJson(Map<String, dynamic> raw) {
+    final Map<String, dynamic> sanitized = {};
+    raw.forEach((key, value) {
+      if (value is Timestamp) {
+        sanitized[key] = value.millisecondsSinceEpoch;
+      } else if (value is GeoPoint) {
+        sanitized[key] = {'lat': value.latitude, 'lng': value.longitude};
+      } else if (value is DateTime) {
+        sanitized[key] = value.millisecondsSinceEpoch;
+      } else if (value is List) {
+        sanitized[key] = value.map((e) {
+          if (e is Timestamp) return e.millisecondsSinceEpoch;
+          if (e is GeoPoint) return {'lat': e.latitude, 'lng': e.longitude};
+          if (e is Map<String, dynamic>) return _sanitizeForJson(e);
+          if (e is Map) return _sanitizeForJson(Map<String, dynamic>.from(e));
+          return e;
+        }).toList();
+      } else if (value is Map<String, dynamic>) {
+        sanitized[key] = _sanitizeForJson(value);
+      } else if (value is Map) {
+        sanitized[key] = _sanitizeForJson(Map<String, dynamic>.from(value));
+      } else {
+        sanitized[key] = value;
+      }
+    });
+    return sanitized;
+  }
 
   /// Initializes Hive storage and opens default cache boxes.
   static Future<void> init() async {
@@ -40,7 +71,8 @@ class HiveCacheService {
       for (final item in listings) {
         final id = item['id'] as String?;
         if (id != null && id.isNotEmpty) {
-          final jsonString = jsonEncode(item);
+          final sanitized = _sanitizeForJson(item);
+          final jsonString = jsonEncode(sanitized);
           await _landBox!.put(id, jsonString);
         }
       }
@@ -78,7 +110,8 @@ class HiveCacheService {
       for (final item in crops) {
         final id = item['id'] as String?;
         if (id != null && id.isNotEmpty) {
-          final jsonString = jsonEncode(item);
+          final sanitized = _sanitizeForJson(item);
+          final jsonString = jsonEncode(sanitized);
           await _cropBox!.put(id, jsonString);
         }
       }

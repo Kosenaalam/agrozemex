@@ -768,6 +768,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'home_map_fab',
         onPressed: () {
           final shell = MainNavigationShell.of(context);
           if (shell != null) {

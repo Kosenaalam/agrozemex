@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/crops/models/crop_card_model.dart';
+import 'package:agrozemex/shared/widget/universal_image_widget.dart';
 
 class CropGridItem extends StatelessWidget {
   final CropCardModel item;
@@ -40,19 +41,9 @@ class CropGridItem extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     hasImage
-                        ? Image.network(
-                            item.photoPaths.first,
+                        ? UniversalImageWidget(
+                            imagePath: item.photoPaths.first,
                             fit: BoxFit.cover,
-                            cacheHeight: 170,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(child: Icon(Icons.error));
-                            },
                           )
                         : Image.asset(
                             AppAssets.defaultLand,
