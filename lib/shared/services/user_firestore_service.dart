@@ -146,6 +146,11 @@ class UserFirestoreService {
     required String waterSource,
     required bool roadAccess,
     required String village,
+    String? listerType,
+    String? landCategory,
+    String? ownershipStatus,
+    bool? electricityAvailable,
+    bool? isFenced,
   }) async {
     final searchTokens = _buildSearchTokens(
       title: title,
@@ -176,6 +181,11 @@ class UserFirestoreService {
       'soil_type': soilType,
       'water_source': waterSource,
       'road_access': roadAccess,
+      'lister_type': listerType ?? 'owner',
+      'land_category': landCategory ?? 'Agricultural',
+      'ownership_status': ownershipStatus ?? 'Single Owner (Clear Title)',
+      'electricity_available': electricityAvailable ?? false,
+      'is_fenced': isFenced ?? false,
       'photo_paths': photoPaths,
       'village': village,
       'created_by': uid,

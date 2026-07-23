@@ -16,8 +16,11 @@ import '../../auth/services/auth_service.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
+import 'package:agrozemex/shared/services/visit_booking_service.dart';
 import 'package:agrozemex/shared/widget/book_visit_sheet.dart';
 import 'package:agrozemex/shared/widget/seller_contact_disclaimer_dialog.dart';
 
@@ -55,6 +58,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   Uint8List? _blueCircleIcon;
   bool _isSellerPhoneRevealed = false;
+  final PageController _photoPageController = PageController();
+  int _currentPhotoIndex = 0;
 
   Future<void> _handleRevealSellerPhone(String rawPhone) async {
     if (_isSellerPhoneRevealed) return;
@@ -86,6 +91,19 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         const SnackBar(content: Text('Seller contact unmasked. Strictly use for land purchase inquiries.')),
       );
     }
+  }
+
+  Future<Map<String, dynamic>> _fetchListingData() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('listings')
+          .doc(widget.listingId)
+          .get();
+      if (doc.exists) {
+        return doc.data() ?? {};
+      }
+    } catch (_) {}
+    return {};
   }
 
   Future<Map<String, dynamic>> _fetchSellerData() async {
@@ -262,6 +280,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   @override
   void dispose() {
+    _photoPageController.dispose();
     _pointManager?.deleteAll();
     _polygonManager?.deleteAll();
     _outlineManager?.deleteAll();
@@ -303,6 +322,44 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _openFullscreenGallery(List<String> photoList, int initialIndex) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final modalController = PageController(initialPage: initialIndex);
+        return Dialog.fullscreen(
+          backgroundColor: Colors.black,
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: modalController,
+                itemCount: photoList.length,
+                itemBuilder: (context, index) {
+                  return InteractiveViewer(
+                    panEnabled: true,
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Center(
+                      child: _buildPhoto(photoList[index], height: double.infinity),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                top: 40,
+                right: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -409,13 +466,133 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
 
+  void _showShareModal() {
+    final acres = widget.areaInSqMeters / 4046.86;
+    final bigha = widget.areaInSqMeters / 2529.3;
+
+    final shareText = '''
+🌱 *AgroZemex Farmland Listing* 🌱
+
+📍 *Title*: ${widget.title}
+💰 *Asking Price*: ₹ ${widget.price.toStringAsFixed(0)}
+📐 *Land Area*: ${acres.toStringAsFixed(2)} Acres (${bigha.toStringAsFixed(1)} Bigha)
+📍 *Location*: Verified Farmland
+
+View complete boundary, soil & water details on AgroZemex Land Marketplace!
+'''.trim();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Share Land Listing',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AgroZemexTokens.primary,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // WhatsApp Direct Share
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFF25D366),
+                child: Icon(Icons.send, color: Colors.white, size: 20),
+              ),
+              title: Text(
+                'Share on WhatsApp',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text('Send formatted land details directly to contacts'),
+              onTap: () async {
+                Navigator.pop(context);
+                try {
+                  final whatsappUrl = Uri.parse(
+                    'https://wa.me/?text=${Uri.encodeComponent(shareText)}',
+                  );
+                  if (await canLaunchUrl(whatsappUrl)) {
+                    await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+                  } else {
+                    await Share.share(shareText, subject: widget.title);
+                  }
+                } catch (_) {
+                  await Share.share(shareText, subject: widget.title);
+                }
+              },
+            ),
+            const Divider(height: 16),
+
+            // Native System Share Sheet
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AgroZemexTokens.primary,
+                child: Icon(Icons.share, color: Colors.white, size: 20),
+              ),
+              title: Text(
+                'Share via Other Apps',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text('Telegram, SMS, Email, or social apps'),
+              onTap: () {
+                Navigator.pop(context);
+                Share.share(shareText, subject: widget.title);
+              },
+            ),
+            const Divider(height: 16),
+
+            // Copy to Clipboard
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AgroZemexTokens.secondary,
+                child: Icon(Icons.copy, color: Colors.white, size: 20),
+              ),
+              title: Text(
+                'Copy Share Details',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text('Copy formatted land summary to clipboard'),
+              onTap: () {
+                Navigator.pop(context);
+                Clipboard.setData(ClipboardData(text: shareText));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Land listing details copied to clipboard!'),
+                    backgroundColor: AgroZemexTokens.success,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final wishlistService = context.read<WishlistService>();
     final auth = context.read<AuthService>();
     final uid = auth.user?.uid ?? '';
 
-    final double areaHa = widget.areaInSqMeters / 10000.0;
     final String mainPhoto = widget.photoPaths.isNotEmpty
         ? widget.photoPaths.first
         : 'https://lh3.googleusercontent.com/aida-public/AB6AXuCtVGx0uzY3AWzBzlOke9itxD8Ek-CoIJw-GHHXASGWCmWM_kTFjV4yzOq0VAUZ7qqsGwv1SUmLPRbzoCY_hbSwZzWiSYKY10NLiBUW40Cz-dUbv4_wy1LjEDj4JCVLKTOKhNEablbWMlGJoKDJMKoS8yVUyrRe808wRkOArMSh9Aw6xXzd7qraZe7FYJEq3eeE3XmfJuKrnfl_3TSa7-JEj_7oo_NlxZGeMS0MlWy7r1mWUfHWDvsnRQ';
@@ -467,7 +644,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     Icons.share_outlined,
                     color: AgroZemexTokens.primary,
                   ),
-                  onPressed: () {},
+                  onPressed: _showShareModal,
                 ),
               ],
             ),
@@ -481,432 +658,499 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Hero Gallery
+              // Hero Gallery PageView Carousel
               Padding(
                 padding: const EdgeInsets.all(AgroZemexTokens.marginMobile),
-                child: Stack(
-                  children: [
-                    _buildPhoto(mainPhoto, height: 280),
-                    Positioned(
-                      bottom: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                child: SizedBox(
+                  height: 280,
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: AgroZemexTokens.radiusLargeCard,
+                        child: PageView.builder(
+                          controller: _photoPageController,
+                          itemCount: math.max(1, widget.photoPaths.length),
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentPhotoIndex = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            final String currentPath = widget.photoPaths.isNotEmpty
+                                ? widget.photoPaths[index]
+                                : mainPhoto;
+                            return GestureDetector(
+                              onTap: () => _openFullscreenGallery(
+                                widget.photoPaths.isNotEmpty
+                                    ? widget.photoPaths
+                                    : [mainPhoto],
+                                index,
+                              ),
+                              child: _buildPhoto(currentPath, height: 280),
+                            );
+                          },
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: AgroZemexTokens.softShadows,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.photo_library,
-                              size: 14,
-                              color: AgroZemexTokens.onSurface,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '1 / ${math.max(1, widget.photoPaths.length)}',
-                              style: AgroZemexTokens.labelCaps.copyWith(
+                      ),
+
+                      // Photo Counter Badge
+                      Positioned(
+                        bottom: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: AgroZemexTokens.softShadows,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.photo_library,
+                                size: 14,
                                 color: AgroZemexTokens.onSurface,
-                                fontWeight: FontWeight.bold,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${_currentPhotoIndex + 1} / ${math.max(1, widget.photoPaths.length)}',
+                                style: AgroZemexTokens.labelCaps.copyWith(
+                                  color: AgroZemexTokens.onSurface,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Animated Dot Indicators
+                      if (widget.photoPaths.length > 1)
+                        Positioned(
+                          bottom: 14,
+                          left: 0,
+                          right: 0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              widget.photoPaths.length,
+                              (idx) => AnimatedContainer(
+                                duration: const Duration(milliseconds: 250),
+                                margin: const EdgeInsets.symmetric(horizontal: 3),
+                                width: _currentPhotoIndex == idx ? 16 : 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: _currentPhotoIndex == idx
+                                      ? AgroZemexTokens.primary
+                                      : Colors.white.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Title, Overview & Technical Specifications Section
+              FutureBuilder<Map<String, dynamic>>(
+                future: _fetchListingData(),
+                builder: (context, snapshot) {
+                  final listingData = snapshot.data ?? {};
+                  final listerType = listingData['lister_type'] ?? 'Direct Owner';
+                  final landCategory = listingData['land_category'] ?? 'Agricultural';
+                  final ownershipStatus = listingData['ownership_status'] ?? 'Single Owner (Clear Title)';
+                  final soilType = listingData['soil_type'] ?? 'Alluvial';
+                  final waterSource = listingData['water_source'] ?? 'Tube Well';
+                  final roadAccess = listingData['road_access'] as bool? ?? true;
+                  final electricityAvailable = listingData['electricity_available'] as bool? ?? false;
+                  final isFenced = listingData['is_fenced'] as bool? ?? false;
+
+                  final acres = widget.areaInSqMeters / 4046.86;
+                  final bigha = widget.areaInSqMeters / 2529.3;
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AgroZemexTokens.marginMobile,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AgroZemexTokens.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.person_pin, size: 14, color: AgroZemexTokens.primary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    listerType.toUpperCase(),
+                                    style: AgroZemexTokens.labelCaps.copyWith(
+                                      color: AgroZemexTokens.primary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AgroZemexTokens.secondary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                landCategory.toUpperCase(),
+                                style: AgroZemexTokens.labelCaps.copyWith(
+                                  color: AgroZemexTokens.secondary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AgroZemexTokens.surfaceContainerLow,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'VERIFIED LISTING',
+                                style: AgroZemexTokens.labelCaps.copyWith(
+                                  color: AgroZemexTokens.onSurfaceVariant,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Title & Overview Section
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AgroZemexTokens.marginMobile,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AgroZemexTokens.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'ARABLE LAND',
-                            style: AgroZemexTokens.labelCaps.copyWith(
-                              color: AgroZemexTokens.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        const SizedBox(height: 12),
+                        Text(
+                          widget.title,
+                          style: AgroZemexTokens.headlineMedium.copyWith(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AgroZemexTokens.secondary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'IRRIGATED',
-                            style: AgroZemexTokens.labelCaps.copyWith(
-                              color: AgroZemexTokens.secondary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.description.isNotEmpty
+                              ? widget.description
+                              : 'Located in the fertile crescent of the central valley, this exceptional parcel offers immediate operational readiness with advanced water management infrastructure and fertile soil profiles.',
+                          style: AgroZemexTokens.bodyLarge.copyWith(
+                            color: AgroZemexTokens.onSurfaceVariant,
+                            fontSize: 15,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 20),
+
+                        // Key Specs Bar
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AgroZemexTokens.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'VERIFIED LISTING',
-                            style: AgroZemexTokens.labelCaps.copyWith(
-                              color: AgroZemexTokens.onSurfaceVariant,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.title,
-                      style: AgroZemexTokens.headlineMedium.copyWith(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.description.isNotEmpty
-                          ? widget.description
-                          : 'Located in the fertile crescent of the central valley, this exceptional parcel offers immediate operational readiness with advanced water management infrastructure and Class 1 soil profiles.',
-                      style: AgroZemexTokens.bodyLarge.copyWith(
-                        color: AgroZemexTokens.onSurfaceVariant,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Key Specs Bar
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: AgroZemexTokens.radiusLargeCard,
-                        boxShadow: AgroZemexTokens.softShadows,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildSpecItem(
-                            icon: Icons.straighten,
-                            label: 'TOTAL AREA',
-                            value: areaHa > 0
-                                ? '${areaHa.toStringAsFixed(1)} Ha'
-                                : '${widget.areaInSqMeters.toStringAsFixed(0)} sq m',
-                          ),
-                          Container(
-                            width: 1,
-                            height: 36,
-                            color: AgroZemexTokens.surfaceContainerLow,
-                          ),
-                          _buildSpecItem(
-                            icon: Icons.landscape,
-                            label: 'TOPOGRAPHY',
-                            value: 'Flat (<2% slope)',
-                          ),
-                          Container(
-                            width: 1,
-                            height: 36,
-                            color: AgroZemexTokens.surfaceContainerLow,
-                          ),
-                          _buildSpecItem(
-                            icon: Icons.water_drop,
-                            label: 'WATER RIGHTS',
-                            value: 'Secured',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Verified Seller Information Card
-                    FutureBuilder<Map<String, dynamic>>(
-                      future: _fetchSellerData(),
-                      builder: (context, snapshot) {
-                        final sellerData = snapshot.data ?? {};
-                        final sellerName = sellerData['name'] ?? sellerData['displayName'] ?? 'AgroZemex Verified Seller';
-                        final sellerPhone = sellerData['phone'] ?? '';
-                        final displayedPhone = sellerPhone.isNotEmpty
-                            ? (_isSellerPhoneRevealed
-                                ? sellerPhone
-                                : (sellerPhone.length > 5
-                                    ? '${sellerPhone.substring(0, 5)} •••••'
-                                    : '••••••••••'))
-                            : '';
-
-                        return Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: AgroZemexTokens.radiusLargeCard,
                             boxShadow: AgroZemexTokens.softShadows,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              Row(
-                                children: [
-                                  const CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor: AgroZemexTokens.primary,
-                                    child: Icon(Icons.person, color: Colors.white, size: 28),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'VERIFIED LAND SELLER',
-                                          style: AgroZemexTokens.labelCaps.copyWith(
-                                            color: AgroZemexTokens.primary,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          sellerName,
-                                          style: AgroZemexTokens.bodyLarge.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                        if (displayedPhone.isNotEmpty)
-                                          Row(
-                                            children: [
-                                              Text(
-                                                displayedPhone,
-                                                style: AgroZemexTokens.bodyMedium.copyWith(
-                                                  color: AgroZemexTokens.onSurfaceVariant,
-                                                  fontSize: 13,
-                                                  fontWeight: _isSellerPhoneRevealed
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                                ),
-                                              ),
-                                              if (_isSellerPhoneRevealed) ...[
-                                                const SizedBox(width: 6),
-                                                InkWell(
-                                                  onTap: () {
-                                                    Clipboard.setData(ClipboardData(text: sellerPhone));
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text('Seller phone number copied to clipboard!'),
-                                                      ),
-                                                    );
-                                                  },
-                                                  borderRadius: BorderRadius.circular(12),
-                                                  child: const Padding(
-                                                    padding: EdgeInsets.all(4),
-                                                    child: Icon(
-                                                      Icons.content_copy,
-                                                      size: 14,
-                                                      color: AgroZemexTokens.primary,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: AgroZemexTokens.primary.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Row(
-                                      children: [
-                                        Icon(Icons.verified, size: 14, color: AgroZemexTokens.primary),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'Verified',
-                                          style: TextStyle(
-                                            color: AgroZemexTokens.primary,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              _buildSpecItem(
+                                icon: Icons.straighten,
+                                label: 'ACRES',
+                                value: '${acres.toStringAsFixed(2)} Ac',
                               ),
-                              if (sellerPhone.isNotEmpty && !_isSellerPhoneRevealed) ...[
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 38,
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => _handleRevealSellerPhone(sellerPhone),
-                                    icon: const Icon(Icons.lock_outline, size: 16, color: AgroZemexTokens.primary),
-                                    label: Text(
-                                      'Show Phone Number',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: AgroZemexTokens.primary,
-                                      ),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: AgroZemexTokens.primary),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              Container(
+                                width: 1,
+                                height: 36,
+                                color: AgroZemexTokens.surfaceContainerLow,
+                              ),
+                              _buildSpecItem(
+                                icon: Icons.landscape,
+                                label: 'BIGHA',
+                                value: '${bigha.toStringAsFixed(1)} Bigha',
+                              ),
+                              Container(
+                                width: 1,
+                                height: 36,
+                                color: AgroZemexTokens.surfaceContainerLow,
+                              ),
+                              _buildSpecItem(
+                                icon: Icons.square_foot,
+                                label: 'SQ METERS',
+                                value: '${widget.areaInSqMeters.toStringAsFixed(0)} m²',
+                              ),
                             ],
                           ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                        ),
+                        const SizedBox(height: 24),
 
-              const SizedBox(height: 32),
-
-              // Technical Specifications Bento Grid
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AgroZemexTokens.marginMobile,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Technical Specifications',
-                      style: AgroZemexTokens.headlineMedium.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Soil Profile Card
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: AgroZemexTokens.radiusLargeCard,
-                              boxShadow: AgroZemexTokens.softShadows,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.eco,
-                                      color: AgroZemexTokens.primary,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Soil Profile',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const Divider(height: 20),
-                                _buildSpecRow('Type', 'Chernozem'),
-                                _buildSpecRow('Organic', '4.5% High'),
-                                _buildSpecRow('pH Level', '6.8 Neutral'),
-                                _buildSpecRow('Drainage', 'Excellent'),
-                              ],
-                            ),
+                        // Technical Specifications Bento Grid Header
+                        Text(
+                          'Technical Specifications',
+                          style: AgroZemexTokens.headlineMedium.copyWith(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 12),
-
-                        // Infrastructure Card
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: AgroZemexTokens.radiusLargeCard,
-                              boxShadow: AgroZemexTokens.softShadows,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Row(
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Soil & Ownership Title Card
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: AgroZemexTokens.radiusLargeCard,
+                                  boxShadow: AgroZemexTokens.softShadows,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.water,
-                                      color: AgroZemexTokens.primary,
-                                      size: 20,
+                                    const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.eco,
+                                          color: AgroZemexTokens.primary,
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Soil & Title',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Infrastructure',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
+                                    const Divider(height: 20),
+                                    _buildSpecRow('Soil Type', soilType),
+                                    _buildSpecRow('Category', landCategory),
+                                    _buildSpecRow('Ownership', ownershipStatus),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            // Infrastructure Card
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: AgroZemexTokens.radiusLargeCard,
+                                  boxShadow: AgroZemexTokens.softShadows,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.water,
+                                          color: AgroZemexTokens.primary,
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Infrastructure',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const Divider(height: 20),
+                                    _buildSpecRow('Water', waterSource),
+                                    _buildSpecRow('3-Phase Power', electricityAvailable ? 'Available' : 'No'),
+                                    _buildSpecRow('Road Access', roadAccess ? 'Direct Road' : 'No Access'),
+                                    _buildSpecRow('Fencing', isFenced ? 'Fenced Wall' : 'Open'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Verified Seller Information Card
+                        FutureBuilder<Map<String, dynamic>>(
+                          future: _fetchSellerData(),
+                          builder: (context, snapshot) {
+                            final sellerData = snapshot.data ?? {};
+                            final sellerName = sellerData['name'] ?? sellerData['displayName'] ?? 'AgroZemex Verified Seller';
+                            final sellerPhone = sellerData['phone'] ?? '';
+                            final displayedPhone = sellerPhone.isNotEmpty
+                                ? (_isSellerPhoneRevealed
+                                    ? sellerPhone
+                                    : (sellerPhone.length > 5
+                                        ? '${sellerPhone.substring(0, 5)} •••••'
+                                        : '••••••••••'))
+                                : '';
+
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: AgroZemexTokens.radiusLargeCard,
+                                boxShadow: AgroZemexTokens.softShadows,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: AgroZemexTokens.primary,
+                                        child: Icon(Icons.person, color: Colors.white, size: 28),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'VERIFIED LAND SELLER (${listerType.toUpperCase()})',
+                                              style: AgroZemexTokens.labelCaps.copyWith(
+                                                color: AgroZemexTokens.primary,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              sellerName,
+                                              style: AgroZemexTokens.bodyLarge.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            if (displayedPhone.isNotEmpty)
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    displayedPhone,
+                                                    style: AgroZemexTokens.bodyMedium.copyWith(
+                                                      color: AgroZemexTokens.onSurfaceVariant,
+                                                      fontSize: 13,
+                                                      fontWeight: _isSellerPhoneRevealed
+                                                          ? FontWeight.bold
+                                                          : FontWeight.normal,
+                                                    ),
+                                                  ),
+                                                  if (_isSellerPhoneRevealed) ...[
+                                                    const SizedBox(width: 6),
+                                                    InkWell(
+                                                      onTap: () {
+                                                        Clipboard.setData(ClipboardData(text: sellerPhone));
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text('Seller phone number copied to clipboard!'),
+                                                          ),
+                                                        );
+                                                      },
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      child: const Padding(
+                                                        padding: EdgeInsets.all(4),
+                                                        child: Icon(
+                                                          Icons.content_copy,
+                                                          size: 14,
+                                                          color: AgroZemexTokens.primary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AgroZemexTokens.primary.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.verified, size: 14, color: AgroZemexTokens.primary),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Verified',
+                                              style: TextStyle(
+                                                color: AgroZemexTokens.primary,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (sellerPhone.isNotEmpty && !_isSellerPhoneRevealed) ...[
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 38,
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _handleRevealSellerPhone(sellerPhone),
+                                        icon: const Icon(Icons.lock_outline, size: 16, color: AgroZemexTokens.primary),
+                                        label: Text(
+                                          'Show Phone Number',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: AgroZemexTokens.primary,
+                                          ),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(color: AgroZemexTokens.primary),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
-                                ),
-                                const Divider(height: 20),
-                                _buildSpecRow('Irrigation', 'Center Pivot'),
-                                _buildSpecRow('Water', 'Deep Wells'),
-                                _buildSpecRow('Access', 'Highway'),
-                                _buildSpecRow('Power', '3-Phase'),
-                              ],
-                            ),
-                          ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
 
               const SizedBox(height: 32),
@@ -992,65 +1236,140 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         ),
       ),
 
-      // Sticky Bottom Action Bar
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: AgroZemexTokens.softShadows,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-              children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      // Sticky Bottom Action Bar with Real-Time Booking Status Lock
+      bottomNavigationBar: StreamBuilder<QuerySnapshot>(
+        stream: context.read<VisitBookingService>().streamUserBookingForListing(
+              buyerId: uid,
+              listingId: widget.listingId,
+            ),
+        builder: (context, snapshot) {
+          String bookingStatus = '';
+          if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+            final docs = snapshot.data!.docs;
+            for (final doc in docs) {
+              final data = doc.data() as Map<String, dynamic>?;
+              final st = data?['status'] as String? ?? '';
+              if (st == 'pending' || st == 'confirmed') {
+                bookingStatus = st;
+                break;
+              }
+            }
+          }
+
+          Widget buttonWidget;
+          if (bookingStatus == 'pending') {
+            buttonWidget = ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Your site visit request is pending seller confirmation.'),
+                    backgroundColor: Colors.amber,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.hourglass_top, size: 18, color: Colors.white),
+              label: Text(
+                'Visit Pending 🔒',
+                style: AgroZemexTokens.bodyLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber.shade800,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: AgroZemexTokens.radiusEight,
+                ),
+              ),
+            );
+          } else if (bookingStatus == 'confirmed') {
+            buttonWidget = ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Your site visit is confirmed! The seller will contact you.'),
+                    backgroundColor: AgroZemexTokens.success,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.white),
+              label: Text(
+                'Visit Scheduled ✓',
+                style: AgroZemexTokens.bodyLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AgroZemexTokens.success,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: AgroZemexTokens.radiusEight,
+                ),
+              ),
+            );
+          } else {
+            buttonWidget = ElevatedButton.icon(
+              onPressed: _handleBookVisit,
+              icon: const Icon(Icons.calendar_month, size: 18),
+              label: Text(
+                'Book Visit',
+                style: AgroZemexTokens.bodyLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AgroZemexTokens.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: AgroZemexTokens.radiusEight,
+                ),
+              ),
+            );
+          }
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              boxShadow: AgroZemexTokens.softShadows,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
                   children: [
-                    Text(
-                      'ASKING PRICE',
-                      style: AgroZemexTokens.labelCaps.copyWith(
-                        fontSize: 10,
-                        color: AgroZemexTokens.onSurfaceVariant,
-                      ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ASKING PRICE',
+                          style: AgroZemexTokens.labelCaps.copyWith(
+                            fontSize: 10,
+                            color: AgroZemexTokens.onSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          '₹ ${widget.price.toStringAsFixed(0)}',
+                          style: GoogleFonts.inter(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AgroZemexTokens.primary,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '₹ ${widget.price.toStringAsFixed(0)}',
-                      style: GoogleFonts.inter(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AgroZemexTokens.primary,
-                      ),
-                    ),
+                    const Spacer(),
+                    buttonWidget,
                   ],
                 ),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: _handleBookVisit,
-                  icon: const Icon(Icons.calendar_month, size: 18),
-                  label: Text(
-                    'Book Visit',
-                    style: AgroZemexTokens.bodyLarge.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AgroZemexTokens.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: AgroZemexTokens.radiusEight,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -1088,6 +1407,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
@@ -1096,12 +1416,18 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               color: AgroZemexTokens.onSurfaceVariant,
             ),
           ),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AgroZemexTokens.onSurface,
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AgroZemexTokens.onSurface,
+              ),
             ),
           ),
         ],
@@ -1109,4 +1435,3 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 }
-

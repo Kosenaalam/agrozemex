@@ -47,6 +47,18 @@ class VisitBookingService {
         .snapshots();
   }
 
+  /// Streams visit bookings submitted by a specific buyer for a specific listing.
+  Stream<QuerySnapshot> streamUserBookingForListing({
+    required String buyerId,
+    required String listingId,
+  }) {
+    return _db
+        .collection('visit_bookings')
+        .where('buyer_id', isEqualTo: buyerId)
+        .where('listing_id', isEqualTo: listingId)
+        .snapshots();
+  }
+
   /// Updates status of a visit booking (e.g. 'confirmed', 'cancelled').
   Future<void> updateBookingStatus(String bookingId, String newStatus) async {
     await _db.collection('visit_bookings').doc(bookingId).update({

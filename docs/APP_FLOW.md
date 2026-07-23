@@ -113,16 +113,17 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Buyer Taps Book Visit on ListingDetailScreen] --> B{Phone & Terms Verified?}
-    B -- No --> C[Trigger PhoneBindingDialog / Login]
-    B -- Yes --> D[Open BookVisitSheet Date & Time Picker]
-    D --> E[Select Visit Date & Visit Time]
-    E --> F[Submit Booking Request]
-    F --> G[Write Record to Firestore visit_bookings Collection]
-    G --> H[Display Booking Confirmed Dialog to Buyer]
-    G --> I[Seller Opens SellerDashboard > Booked Visits Tab]
-    I --> J[Display Buyer Name, Buyer Phone Number, and Visit Date/Time]
-    J --> K[Seller Taps Confirm Visit or Contacts Buyer Directly]
+    A[Buyer Opens ListingDetailScreen] --> B{Active Booking Exists?}
+    B -- Yes: Pending --> C[Lock Action Button: Visit Pending 🔒 Amber]
+    B -- Yes: Confirmed --> D[Lock Action Button: Visit Scheduled ✓ Green]
+    B -- No / Cancelled --> E[Show Active Book Visit Button]
+    E --> F[Buyer Taps Book Visit & Verifies Phone/Terms]
+    F --> G[Open BookVisitSheet Date & Time Picker]
+    G --> H[Submit Booking Request to Firestore visit_bookings]
+    H --> I[Button Dynamically Updates & Locks to Visit Pending]
+    H --> J[Seller Dashboard Displays Incoming Visit Request]
+    J --> K[Seller Updates Status to Confirmed]
+    K --> L[ListingDetailScreen Button Updates in Real-Time to Visit Scheduled]
 ```
 
 ### 4.4 Seller Contact Privacy & Anti-Misuse Consent Workflow
@@ -137,6 +138,41 @@ flowchart TD
     F --> G{Buyer Accepts [x] Anti-Misuse Checkbox?}
     G -- No --> H[Cancel & Keep Phone Masked]
     G -- Yes --> I[Unmask Seller Phone Number on Card]
+```
+
+### 4.5 Dynamic Land Specification & Persona Display Flow
+
+```mermaid
+flowchart TD
+    A[Buyer Opens ListingDetailScreen] --> B[Execute _fetchListingData from Firestore]
+    B --> C[Render Lister Persona Badge e.g. Direct Owner vs Agent]
+    B --> D[Render Land Category Badge e.g. Agricultural vs Orchard]
+    B --> E[Convert Land Area into Acres, Bigha, and Sq. Meters]
+    B --> F[Render Technical Specifications Bento Grid]
+    F --> G[Display Soil Type, Water Source, 3-Phase Power, Road Access, Fencing, and Ownership Title]
+### 4.6 Swipeable Photo Gallery & Fullscreen Pinch-to-Zoom Lightbox
+
+```mermaid
+flowchart TD
+    A[Buyer Views ListingDetailScreen Hero Section] --> B[Render PageView.builder Photo Carousel]
+    B --> C[User Swipes Left / Right Across Uploaded Land Photos]
+    C --> D[Update PageController & _currentPhotoIndex]
+    D --> E[Update Live Photo Badge Count e.g. 2 / 5 and Active Dot Indicator]
+    B --> F[User Taps Any Hero Photo]
+    F --> G[Open Fullscreen Lightbox Modal with InteractiveViewer]
+    G --> H[Enable Pinch-to-Zoom and Panning Across High-Res Land Images]
+### 4.7 Multi-Platform & WhatsApp Land Listing Sharing Flow
+
+```mermaid
+flowchart TD
+    A[User Taps Share Icon on ListingDetailScreen AppBar] --> B[Open AgroZemex Share Bottom Sheet Modal]
+    B --> C[Option 1: Tap Share on WhatsApp]
+    C --> D[Generate Formatted Message with Title, Price, Acres/Bigha & Location]
+    D --> E[Launch WhatsApp wa.me Scheme with Encoded Text]
+    B --> F[Option 2: Tap Share via Other Apps]
+    F --> G[Invoke Native Device System Share Sheet share_plus]
+    B --> H[Option 3: Tap Copy Share Details]
+    H --> I[Copy Formatted Summary to Device Clipboard & Show SnackBar]
 ```
 
 ---

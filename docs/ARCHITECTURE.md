@@ -115,13 +115,19 @@ MultiProvider(
 | :--- | :--- | :--- |
 | `id` | String | Listing ID |
 | `title` | String | Land listing title |
-| `price` | Double | Land price |
-| `areaAcres` | Double | Calculated land area in acres |
+| `price` | Double | Land price in ₹ |
+| `area_sq_m` | Double | Land area in square meters |
+| `lister_type` | String | Persona (`owner`, `agent`, `builder`) |
+| `land_category` | String | Land usage (`Agricultural`, `Orchard`, `Commercial`, `Barren`) |
+| `ownership_status` | String | Title status (`Single Owner`, `Joint Family`, `POA`) |
+| `electricity_available`| Boolean | True if 3-Phase agricultural power available |
+| `is_fenced` | Boolean | True if barbed wire / boundary wall installed |
+| `road_access` | Boolean | True if direct tar/asphalt road access |
 | `location` | GeoPoint / Map | Latitude & longitude coordinates |
-| `polygonPoints` | Array<Map> | GeoJSON / LatLng polygon boundary coordinates |
-| `images` | Array<String> | Firebase Storage image URLs |
-| `sellerId` | String | Reference UID to `users` |
-| `searchTokens` | Array<String> | Lowercase prefix search tokens for indexing |
+| `boundary_points` | Array<Map> | LatLng polygon boundary coordinates |
+| `photo_paths` | Array<String> | Firebase Storage image URLs |
+| `created_by` | String | Reference UID to `users` |
+| `search_tokens` | Array<String> | Lowercase prefix search tokens for indexing |
 
 ### `crops` Collection (Crop Marketplace)
 | Field | Type | Description |
