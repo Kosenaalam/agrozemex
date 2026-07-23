@@ -20,10 +20,7 @@ class ListingCardModel {
   final List<String> searchTokens;
   final double? centerLat;
   final double? centerLng;
-  
-
-   
-
+  final String sellerId;
 
   ListingCardModel({
     required this.id,
@@ -35,11 +32,11 @@ class ListingCardModel {
     required this.boundaryPoints,
     this.distanceMeters,
     this.roadAccess,
-     this.soilType,
+    this.soilType,
     this.waterSource,
     required this.searchTokens,
     this.centerLat,
     this.centerLng,
-
+    this.sellerId = '',
   });
 }

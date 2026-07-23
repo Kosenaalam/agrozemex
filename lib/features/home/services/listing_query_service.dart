@@ -97,6 +97,7 @@ class ListingQueryService {
       searchTokens: searchTokens,
       centerLat: centerLat,
       centerLng: centerLng,
+      sellerId: data['created_by'] as String? ?? '',
     );
   }
 

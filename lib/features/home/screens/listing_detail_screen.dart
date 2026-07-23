@@ -18,6 +18,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
+import 'package:agrozemex/shared/widget/book_visit_sheet.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final String listingId;
@@ -54,22 +55,24 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Uint8List? _blueCircleIcon;
 
   Future<Map<String, dynamic>> _fetchSellerData() async {
-    if (widget.sellerId != null && widget.sellerId!.isNotEmpty) {
-      return context.read<UserFirestoreService>().getUserData(widget.sellerId!);
-    }
-    try {
-      final listingDoc = await FirebaseFirestore.instance
-          .collection('listings')
-          .doc(widget.listingId)
-          .get();
-      if (listingDoc.exists) {
-        final createdBy = listingDoc.data()?['created_by'] as String?;
-        if (createdBy != null && createdBy.isNotEmpty) {
-          if (!mounted) return {};
-          return context.read<UserFirestoreService>().getUserData(createdBy);
+    String targetSellerId = widget.sellerId ?? '';
+    if (targetSellerId.isEmpty) {
+      try {
+        final listingDoc = await FirebaseFirestore.instance
+            .collection('listings')
+            .doc(widget.listingId)
+            .get();
+        if (listingDoc.exists) {
+          targetSellerId = listingDoc.data()?['created_by'] as String? ?? '';
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
+    if (targetSellerId.isNotEmpty && mounted) {
+      final data = await context.read<UserFirestoreService>().getUserData(targetSellerId);
+      final resultMap = Map<String, dynamic>.from(data);
+      resultMap['seller_uid'] = targetSellerId;
+      return resultMap;
+    }
     return {};
   }
 
@@ -304,6 +307,72 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               ),
       ),
     );
+  }
+
+  Future<void> _handleBookVisit() async {
+    final auth = context.read<AuthService>();
+    final user = auth.user;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to book a site visit.')),
+      );
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
+
+    final userService = context.read<UserFirestoreService>();
+    final verified = await userService.isPhoneAndTermsVerified(user);
+    if (!verified && mounted) {
+      final success = await PhoneBindingDialog.show(context);
+      if (!success) return;
+    }
+
+    if (!mounted) return;
+    final userData = await userService.getUserData(user.uid);
+    final buyerName = userData['name'] ?? userData['displayName'] ?? user.displayName ?? 'Buyer';
+    final buyerPhone = userData['phone'] ?? user.phoneNumber ?? '';
+
+    final sellerData = await _fetchSellerData();
+    final sellerId = (widget.sellerId != null && widget.sellerId!.isNotEmpty)
+        ? widget.sellerId!
+        : (sellerData['seller_uid'] as String? ?? sellerData['uid'] as String? ?? sellerData['created_by'] as String? ?? '');
+
+    if (!mounted) return;
+    final booked = await BookVisitSheet.show(
+      context: context,
+      listingId: widget.listingId,
+      listingTitle: widget.title,
+      sellerId: sellerId,
+      buyerId: user.uid,
+      buyerName: buyerName,
+      buyerPhone: buyerPhone,
+    );
+
+    if (booked && mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: AgroZemexTokens.primary, size: 28),
+              SizedBox(width: 8),
+              Text('Booking Confirmed!'),
+            ],
+          ),
+          content: const Text(
+            'Your site visit request has been sent to the land seller. The seller will contact you shortly to confirm.',
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AgroZemexTokens.primary),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -858,7 +927,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 ),
                 const Spacer(),
                 ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _handleBookVisit,
                   icon: const Icon(Icons.calendar_month, size: 18),
                   label: Text(
                     'Book Visit',

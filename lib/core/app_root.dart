@@ -15,6 +15,8 @@ import '../shared/services/wishlist_service.dart';
 import 'init.dart';
 import 'theme/theme.dart';
 
+import '../shared/services/visit_booking_service.dart';
+
 class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
 
@@ -30,6 +32,7 @@ class AppRoot extends StatelessWidget {
         Provider(create: (_) => CropQueryService()),
         Provider(create: (_) => CropSearchService()),
         Provider(create: (_) => WishlistService()),
+        Provider(create: (_) => VisitBookingService()),
         Provider<LocationService>(create: (_) => AppInit.locationService),
       ],
       child: MaterialApp(

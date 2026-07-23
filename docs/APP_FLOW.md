@@ -109,6 +109,22 @@ flowchart TD
     J -- Yes --> E
 ```
 
+### 4.3 Site Visit Booking & Seller Request Workflow
+
+```mermaid
+flowchart TD
+    A[Buyer Taps Book Visit on ListingDetailScreen] --> B{Phone & Terms Verified?}
+    B -- No --> C[Trigger PhoneBindingDialog / Login]
+    B -- Yes --> D[Open BookVisitSheet Date & Time Picker]
+    D --> E[Select Visit Date & Visit Time]
+    E --> F[Submit Booking Request]
+    F --> G[Write Record to Firestore visit_bookings Collection]
+    G --> H[Display Booking Confirmed Dialog to Buyer]
+    G --> I[Seller Opens SellerDashboard > Booked Visits Tab]
+    I --> J[Display Buyer Name, Buyer Phone Number, and Visit Date/Time]
+    J --> K[Seller Taps Confirm Visit or Contacts Buyer Directly]
+```
+
 ---
 
 ### 4.2 Interactive GIS Land Boundary Drawing & Listing Creation Flow

@@ -133,6 +133,20 @@ MultiProvider(
 | `sellerId` | String | Reference UID to `users` |
 | `images` | Array<String> | Firebase Storage image URLs |
 
+### `visit_bookings` Collection (Site Visit Requests)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | String | Unique booking document ID |
+| `listing_id` | String | Target land listing ID |
+| `listing_title` | String | Land listing title |
+| `buyer_id` | String | Reference UID to `users` (buyer) |
+| `buyer_name` | String | Full name of the buyer |
+| `buyer_phone` | String | Verified contact phone number of the buyer |
+| `seller_id` | String | Reference UID to `users` (seller) |
+| `visit_date` | Timestamp | Scheduled date & time for site visit |
+| `status` | String | Request status (`pending`, `confirmed`, `completed`, `cancelled`) |
+| `created_at` | Timestamp | Booking submission timestamp |
+
 ---
 
 ## 6. Security & Environment Configuration

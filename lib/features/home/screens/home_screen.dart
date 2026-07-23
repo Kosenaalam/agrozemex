@@ -400,6 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
             areaInSqMeters: item.areaInSqMeters,
             boundaryPoints: item.boundaryPoints,
             photoPaths: item.photoPaths,
+            sellerId: item.sellerId,
           ),
         ),
       );
