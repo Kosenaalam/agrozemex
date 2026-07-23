@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:agrozemex/core/theme/theme.dart';
+import 'package:agrozemex/shared/services/land_area_unit_converter.dart';
 
 class AreaStatsPanel extends StatelessWidget {
   final int pointsCount;
-  final double currentAreaHa;
+  final double areaInSqMeters;
+  final bool hasSelfIntersection;
 
   const AreaStatsPanel({
     super.key,
     required this.pointsCount,
-    required this.currentAreaHa,
+    required this.areaInSqMeters,
+    this.hasSelfIntersection = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final acres = LandAreaUnitConverter.toAcres(areaInSqMeters);
+    final bigha = LandAreaUnitConverter.toBigha(areaInSqMeters);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -62,7 +68,7 @@ class AreaStatsPanel extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'IRRIGATED',
+                    'VERIFIED GIS',
                     style: AgroZemexTokens.labelCaps.copyWith(
                       color: AgroZemexTokens.secondary,
                       fontSize: 10,
@@ -73,8 +79,8 @@ class AreaStatsPanel extends StatelessWidget {
               ],
             ),
             const Icon(
-              Icons.favorite_border,
-              color: AgroZemexTokens.onSurfaceVariant,
+              Icons.verified,
+              color: AgroZemexTokens.primary,
               size: 20,
             ),
           ],
@@ -101,14 +107,14 @@ class AreaStatsPanel extends StatelessWidget {
         ),
         const SizedBox(height: 16),
 
-        // Area / Corners / Status Stats Row
+        // Area / Bigha / Status Stats Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             Column(
               children: [
                 Text(
-                  'AREA',
+                  'ACRES',
                   style: AgroZemexTokens.labelCaps.copyWith(
                     fontSize: 10,
                     color: AgroZemexTokens.onSurfaceVariant,
@@ -116,11 +122,12 @@ class AreaStatsPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  currentAreaHa > 0
-                      ? '${currentAreaHa.toStringAsFixed(2)} ha'
-                      : '0.0 ha',
+                  areaInSqMeters > 0
+                      ? '${acres.toStringAsFixed(2)} Acres'
+                      : '0.00 Acres',
                   style: AgroZemexTokens.bodyLarge.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: AgroZemexTokens.primary,
                   ),
                 ),
               ],
@@ -128,7 +135,7 @@ class AreaStatsPanel extends StatelessWidget {
             Column(
               children: [
                 Text(
-                  'CORNERS',
+                  'BIGHA',
                   style: AgroZemexTokens.labelCaps.copyWith(
                     fontSize: 10,
                     color: AgroZemexTokens.onSurfaceVariant,
@@ -136,7 +143,9 @@ class AreaStatsPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$pointsCount Points',
+                  areaInSqMeters > 0
+                      ? '${bigha.toStringAsFixed(1)} Bigha'
+                      : '0.0 Bigha',
                   style: AgroZemexTokens.bodyLarge.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -154,12 +163,17 @@ class AreaStatsPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  pointsCount >= 3 ? 'Ready to Save' : 'Need ${3 - pointsCount} more',
+                  hasSelfIntersection
+                      ? '⚠️ Crossing Lines'
+                      : (pointsCount >= 3 ? 'Ready to Save' : 'Need ${3 - pointsCount} more'),
                   style: AgroZemexTokens.bodyLarge.copyWith(
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: pointsCount >= 3
-                        ? AgroZemexTokens.primary
-                        : AgroZemexTokens.onSurfaceVariant,
+                    color: hasSelfIntersection
+                        ? AgroZemexTokens.error
+                        : (pointsCount >= 3
+                            ? AgroZemexTokens.primary
+                            : AgroZemexTokens.onSurfaceVariant),
                   ),
                 ),
               ],

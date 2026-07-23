@@ -29,9 +29,6 @@ class _MapScreenState extends State<MapScreen> {
   Uint8List? _blueCircleIcon;
 
   double _areaInSqMeters = 0.0;
-  // PERF FIX: Cache the computed area so it is NOT recalculated in build().
-  // Previously _calculateAreaSqMeters() ran on every frame (including scroll/animation).
-  double _cachedAreaHa = 0.0;
   bool _isSaved = false;
 
   @override
@@ -110,8 +107,7 @@ class _MapScreenState extends State<MapScreen> {
       if (index != -1 && minDistance < 0.01) {
         setState(() {
           _boundaryPoints[index] = newPoint;
-          // PERF FIX: Recompute cached area when drag changes points
-          _cachedAreaHa = _calculateAreaSqMeters() / 10000.0;
+          _areaInSqMeters = _calculateAreaSqMeters();
         });
         await _updatePolygon();
       }
@@ -175,8 +171,7 @@ class _MapScreenState extends State<MapScreen> {
     if (_boundaryPoints.isNotEmpty && !_isSaved) {
       setState(() {
         _boundaryPoints.removeLast();
-        // PERF FIX: Recompute area ONLY when points change, not in build()
-        _cachedAreaHa = _calculateAreaSqMeters() / 10000.0;
+        _areaInSqMeters = _calculateAreaSqMeters();
       });
       await _updatePolygon();
     }
@@ -187,7 +182,6 @@ class _MapScreenState extends State<MapScreen> {
       setState(() {
         _boundaryPoints.clear();
         _areaInSqMeters = 0.0;
-        _cachedAreaHa = 0.0; // PERF FIX: reset cached area
         _isSaved = false;
       });
       await _pointManager?.deleteAll();
@@ -205,7 +199,6 @@ class _MapScreenState extends State<MapScreen> {
 
     setState(() {
       _areaInSqMeters = _calculateAreaSqMeters();
-      _cachedAreaHa = _areaInSqMeters / 10000.0; // PERF FIX: update cache on save
       _isSaved = true;
     });
 
@@ -275,8 +268,6 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double currentAreaHa = _cachedAreaHa;
-
     return Scaffold(
       body: Stack(
         children: [
@@ -396,7 +387,8 @@ class _MapScreenState extends State<MapScreen> {
                 children: [
                   AreaStatsPanel(
                     pointsCount: _boundaryPoints.length,
-                    currentAreaHa: currentAreaHa,
+                    areaInSqMeters: _areaInSqMeters,
+                    hasSelfIntersection: BoundaryService.hasSelfIntersection(_boundaryPoints),
                   ),
                   const SizedBox(height: 16),
                   MapActionButtons(

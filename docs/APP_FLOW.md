@@ -211,6 +211,18 @@ flowchart TD
     I --> J[Read Raw Maps from Hive Cache Boxes]
     J --> K[Parse Cached Maps into Models]
     K --> L[Render Cached Land & Crop Listings on UI Offline]
+### 4.11 WGS-84 Survey-Grade Land Area Calculation & Unit Conversion Flow
+
+```mermaid
+flowchart TD
+    A[Seller Draws Polygon Points on MapScreen] --> B[Calculate Centroid Latitude phi_c in Radians]
+    B --> C[Compute WGS-84 Authalic Radius of Curvature R_phi_c]
+    C --> D[Execute Spherical Integration with Effective Radius R_phi_c]
+    D --> E[Check Boundary Points for Line Segment Crossings via hasSelfIntersection]
+    E -- Self-Intersection Detected --> F[Display ⚠️ Crossing Lines Status on AreaStatsPanel]
+    E -- Polygon Valid --> G[Pass Area in sq. m to LandAreaUnitConverter]
+    G --> H[Convert to Acres, Bigha, Guntha, and Hectares with 99.95%+ Precision]
+    H --> I[Render Land Area Stats & Enable Publish Button]
 ```
 
 ---

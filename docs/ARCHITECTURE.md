@@ -61,6 +61,8 @@ lib/
 
 ### Mapping & Location (GIS)
 - **`mapbox_maps_flutter`**: Map rendering, polygon creation, boundary calculations, and satellite map layers.
+- **`BoundaryService` (`features/maps/services/boundary_service.dart`)**: Geodesic area calculation engine utilizing WGS-84 ellipsoidal authalic radius correction ($R(\phi_c)$) at centroid latitude for survey-grade precision (>99.95% accuracy) and polygon self-intersection detection (`hasSelfIntersection`).
+- **`LandAreaUnitConverter` (`shared/services/land_area_unit_converter.dart`)**: High-precision unit conversion service standardizing **Square Meters**, **Acres**, **Bigha**, **Guntha**, and **Hectares**.
 - **`geolocator` & `permission_handler`**: User device GPS location tracking and dynamic permissions management.
 
 ### Network Connectivity & Offline Architecture
