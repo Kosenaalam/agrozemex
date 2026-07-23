@@ -35,21 +35,27 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
       // PERF FIX: Use the Provider-registered singleton instead of creating a new
       // UserFirestoreService() instance on every rebuild. New instances create
       // separate Firestore connection state that is never properly disposed.
-      _profileFuture = context.read<UserFirestoreService>().getUserData(auth.user!.uid);
+      _profileFuture = context.read<UserFirestoreService>().getUserData(
+        auth.user!.uid,
+      );
     }
 
     return FutureBuilder<Map<String, dynamic>>(
       future: _profileFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         if (snapshot.hasError || !snapshot.hasData) {
-          return const Scaffold(body: Center(child: Text('Error loading profile')));
+          return const Scaffold(
+            body: Center(child: Text('Error loading profile')),
+          );
         }
 
         final userData = snapshot.data!;
-        final name = userData['name'] ?? userData['displayName'] ?? 'Alexander Sterling';
+        final name = userData['name'] ?? userData['displayName'] ?? 'User Name';
         final phone = userData['phone'] ?? '';
         final email = userData['email'] ?? auth.user?.email ?? 'N/A';
         final role = userData['role'] ?? 'buyer';
@@ -62,7 +68,9 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
               child: BackdropFilter(
                 filter: AgroZemexTokens.glassBlurFilter,
                 child: AppBar(
-                  backgroundColor: AgroZemexTokens.surface.withValues(alpha: 0.8),
+                  backgroundColor: AgroZemexTokens.surface.withValues(
+                    alpha: 0.8,
+                  ),
                   elevation: 0,
                   automaticallyImplyLeading: false,
                   title: Text(
@@ -74,8 +82,11 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                     ),
                   ),
                   actions: [
-                    IconButton( 
-                      icon: const Icon(Icons.logout, color: AgroZemexTokens.onSurfaceVariant),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.logout,
+                        color: AgroZemexTokens.onSurfaceVariant,
+                      ),
                       onPressed: () async {
                         // Logout via AuthService. The authStateChanges() stream will emit
                         // null → AuthService.user becomes null → notifyListeners() →
@@ -136,7 +147,9 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.08),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.08,
+                                      ),
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),
@@ -144,11 +157,16 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                   image: DecorationImage(
                                     image: auth.user?.photoURL != null
                                         ? ResizeImage(
-                                            NetworkImage(auth.user!.photoURL!),
-                                            width: 200,
-                                            height: 200,
-                                          ) as ImageProvider
-                                        : const AssetImage(AppAssets.defaultAvatar),
+                                                NetworkImage(
+                                                  auth.user!.photoURL!,
+                                                ),
+                                                width: 200,
+                                                height: 200,
+                                              )
+                                              as ImageProvider
+                                        : const AssetImage(
+                                            AppAssets.defaultAvatar,
+                                          ),
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -186,11 +204,15 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AgroZemexTokens.primary.withValues(alpha: 0.1),
+                              color: AgroZemexTokens.primary.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              role == 'seller' ? 'Verified Seller' : 'Verified Buyer',
+                              role == 'seller'
+                                  ? 'Verified Seller'
+                                  : 'Verified Buyer',
                               style: AgroZemexTokens.labelCaps.copyWith(
                                 color: AgroZemexTokens.primary,
                                 fontWeight: FontWeight.bold,
@@ -198,7 +220,9 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Divider(color: AgroZemexTokens.surfaceContainerLow),
+                          const Divider(
+                            color: AgroZemexTokens.surfaceContainerLow,
+                          ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -230,7 +254,7 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  phone.isNotEmpty ? phone : '+44 (0) 20 7946 0123',
+                                  phone.isNotEmpty ? phone : '+91 0000000000',
                                   style: AgroZemexTokens.bodyLarge.copyWith(
                                     fontSize: 14,
                                     color: AgroZemexTokens.onSurfaceVariant,
@@ -272,10 +296,14 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                 StreamBuilder<QuerySnapshot>(
                                   stream: FirebaseFirestore.instance
                                       .collection('listings')
-                                      .where('created_by', isEqualTo: auth.user?.uid)
+                                      .where(
+                                        'created_by',
+                                        isEqualTo: auth.user?.uid,
+                                      )
                                       .snapshots(),
                                   builder: (context, snapshot) {
-                                    final count = snapshot.data?.docs.length ?? 0;
+                                    final count =
+                                        snapshot.data?.docs.length ?? 0;
                                     return Text(
                                       '$count',
                                       style: GoogleFonts.inter(
@@ -313,7 +341,9 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                 ),
                                 const SizedBox(height: 8),
                                 StreamBuilder<List<String>>(
-                                  stream: WishlistService().getWishlistIds(uid: auth.user?.uid ?? ''),
+                                  stream: WishlistService().getWishlistIds(
+                                    uid: auth.user?.uid ?? '',
+                                  ),
                                   builder: (context, snapshot) {
                                     final count = snapshot.data?.length ?? 0;
                                     return Text(
@@ -358,7 +388,9 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: AgroZemexTokens.primary.withValues(alpha: 0.1),
+                                  color: AgroZemexTokens.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(
@@ -404,7 +436,10 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                             if (shell != null) {
                               shell.switchTab(2); // Sell Land tab
                             }
-                            Navigator.popUntil(context, (route) => route.isFirst);
+                            Navigator.popUntil(
+                              context,
+                              (route) => route.isFirst,
+                            );
                           },
                           child: Text(
                             'ADD NEW',
@@ -436,4 +471,3 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
     );
   }
 }
-

@@ -13,6 +13,7 @@ import '../models/listing_card_model.dart';
 import '../models/listing_filter_model.dart';
 import '../services/listing_query_service.dart';
 import '../screens/listing_detail_screen.dart';
+import 'package:agrozemex/shared/services/wishlist_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,8 +59,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final service = context.read<ListingQueryService>();
-      final newListings =
-          await service.fetchNextPage(searchQuery: _searchQuery, filter: _filter);
+      final newListings = await service.fetchNextPage(
+        searchQuery: _searchQuery,
+        filter: _filter,
+      );
 
       if (!mounted) return;
 
@@ -68,8 +71,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _hasMore = false;
         } else {
           final existingIds = _listings.map((e) => e.id).toSet();
-          final uniqueNew =
-              newListings.where((e) => !existingIds.contains(e.id)).toList();
+          final uniqueNew = newListings
+              .where((e) => !existingIds.contains(e.id))
+              .toList();
           _listings.addAll(uniqueNew);
         }
       });
@@ -87,6 +91,17 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  Future<void> _onRefresh() async {
+    final service = context.read<ListingQueryService>();
+    service.resetPagination();
+    setState(() {
+      _listings.clear();
+      _hasMore = true;
+      _isLoading = false;
+    });
+    await _loadMore();
   }
 
   void _clearSearch() {
@@ -125,8 +140,21 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            final List<String> soilTypes = ['All', 'Alluvial', 'Black', 'Clay', 'Loam', 'Sandy'];
-            final List<String> waterSources = ['All', 'Well', 'Canal', 'Borewell', 'Rainfed'];
+            final List<String> soilTypes = [
+              'All',
+              'Alluvial',
+              'Black',
+              'Clay',
+              'Loam',
+              'Sandy',
+            ];
+            final List<String> waterSources = [
+              'All',
+              'Well',
+              'Canal',
+              'Borewell',
+              'Rainfed',
+            ];
 
             return Container(
               padding: EdgeInsets.only(
@@ -179,10 +207,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         return ChoiceChip(
                           label: Text(type),
                           selected: selected,
-                          selectedColor: AgroZemexTokens.primary.withValues(alpha: 0.15),
+                          selectedColor: AgroZemexTokens.primary.withValues(
+                            alpha: 0.15,
+                          ),
                           labelStyle: TextStyle(
-                            color: selected ? AgroZemexTokens.primary : Colors.black87,
-                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                            color: selected
+                                ? AgroZemexTokens.primary
+                                : Colors.black87,
+                            fontWeight: selected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                           onSelected: (v) {
                             setSheetState(() {
@@ -211,14 +245,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     Wrap(
                       spacing: 8,
                       children: waterSources.map((source) {
-                        final selected = (_filter.waterSource ?? 'All') == source;
+                        final selected =
+                            (_filter.waterSource ?? 'All') == source;
                         return ChoiceChip(
                           label: Text(source),
                           selected: selected,
-                          selectedColor: AgroZemexTokens.primary.withValues(alpha: 0.15),
+                          selectedColor: AgroZemexTokens.primary.withValues(
+                            alpha: 0.15,
+                          ),
                           labelStyle: TextStyle(
-                            color: selected ? AgroZemexTokens.primary : Colors.black87,
-                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                            color: selected
+                                ? AgroZemexTokens.primary
+                                : Colors.black87,
+                            fontWeight: selected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                           onSelected: (v) {
                             setSheetState(() {
@@ -363,9 +404,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please login first!")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please login first!")));
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -385,9 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(
-                color: AgroZemexTokens.primary,
-              ),
+              decoration: const BoxDecoration(color: AgroZemexTokens.primary),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -412,7 +451,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.person_outline, color: AgroZemexTokens.primary),
+              leading: const Icon(
+                Icons.person_outline,
+                color: AgroZemexTokens.primary,
+              ),
               title: const Text('My Profile'),
               onTap: () {
                 Navigator.pop(context); // close drawer
@@ -423,7 +465,10 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.settings_outlined, color: AgroZemexTokens.primary),
+              leading: const Icon(
+                Icons.settings_outlined,
+                color: AgroZemexTokens.primary,
+              ),
               title: const Text('Settings'),
               onTap: () {
                 Navigator.pop(context);
@@ -433,12 +478,17 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.help_outline, color: AgroZemexTokens.primary),
+              leading: const Icon(
+                Icons.help_outline,
+                color: AgroZemexTokens.primary,
+              ),
               title: const Text('Help & Support'),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Support email: support@agrozemex.com')),
+                  const SnackBar(
+                    content: Text('Support email: support@agrozemex.com'),
+                  ),
                 );
               },
             ),
@@ -456,7 +506,9 @@ class _HomeScreenState extends State<HomeScreen> {
               color: AgroZemexTokens.surface.withValues(alpha: 0.97),
               border: Border(
                 bottom: BorderSide(
-                  color: AgroZemexTokens.onSurfaceVariant.withValues(alpha: 0.08),
+                  color: AgroZemexTokens.onSurfaceVariant.withValues(
+                    alpha: 0.08,
+                  ),
                 ),
               ),
               boxShadow: const [
@@ -508,10 +560,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       image: DecorationImage(
                         image: auth.user?.photoURL != null
                             ? ResizeImage(
-                                NetworkImage(auth.user!.photoURL!),
-                                width: 100,
-                                height: 100,
-                              ) as ImageProvider
+                                    NetworkImage(auth.user!.photoURL!),
+                                    width: 100,
+                                    height: 100,
+                                  )
+                                  as ImageProvider
                             : const AssetImage(AppAssets.defaultAvatar),
                         fit: BoxFit.cover,
                       ),
@@ -523,115 +576,125 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      body: CustomScrollView(
-        controller: _scrollController,
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // Floating Search & Filter Pill Header
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AgroZemexTokens.marginMobile),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.5),
+      body: RefreshIndicator(
+        color: AgroZemexTokens.primary,
+        onRefresh: _onRefresh,
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          slivers: [
+            // Floating Search & Filter Pill Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(AgroZemexTokens.marginMobile),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                    boxShadow: AgroZemexTokens.softShadows,
                   ),
-                  boxShadow: AgroZemexTokens.softShadows,
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.search,
-                      color: AgroZemexTokens.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          final query = value.toLowerCase().trim();
-                          _debounce?.cancel();
-                          _debounce =
-                              Timer(const Duration(milliseconds: 300), () {
-                            final service = context.read<ListingQueryService>();
-                            service.resetPagination();
-                            setState(() {
-                              _searchQuery = query;
-                              _listings.clear();
-                              _hasMore = true;
-                              _isLoading = false;
-                            });
-                            _loadMore();
-                          });
-                        },
-                        style: GoogleFonts.inter(fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: 'Search location, village or tehsil...',
-                          hintStyle: GoogleFonts.inter(
-                            color: AgroZemexTokens.onSurfaceVariant,
-                            fontSize: 14,
-                          ),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          fillColor: Colors.transparent,
-                        ),
-                      ),
-                    ),
-                    // PERF FIX: ValueListenableBuilder only rebuilds the clear
-                    // button widget, not the entire 825-line HomeScreen
-                    ValueListenableBuilder<TextEditingValue>(
-                      valueListenable: _searchController,
-                      builder: (context, value, child) {
-                        return value.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: _clearSearch,
-                              )
-                            : const SizedBox.shrink();
-                      },
-                    ),
-                    Container(
-                      width: 1,
-                      height: 24,
-                      color: AgroZemexTokens.surfaceContainerLow,
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.tune,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.search,
                         color: AgroZemexTokens.primary,
                         size: 20,
                       ),
-                      onPressed: () => _showFilterBottomSheet(context),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            final query = value.toLowerCase().trim();
+                            _debounce?.cancel();
+                            _debounce = Timer(
+                              const Duration(milliseconds: 300),
+                              () {
+                                final service = context
+                                    .read<ListingQueryService>();
+                                service.resetPagination();
+                                setState(() {
+                                  _searchQuery = query;
+                                  _listings.clear();
+                                  _hasMore = true;
+                                  _isLoading = false;
+                                });
+                                _loadMore();
+                              },
+                            );
+                          },
+                          style: GoogleFonts.inter(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Search location, village or tehsil...',
+                            hintStyle: GoogleFonts.inter(
+                              color: AgroZemexTokens.onSurfaceVariant,
+                              fontSize: 14,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            fillColor: Colors.transparent,
+                          ),
+                        ),
+                      ),
+                      // PERF FIX: ValueListenableBuilder only rebuilds the clear
+                      // button widget, not the entire 825-line HomeScreen
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _searchController,
+                        builder: (context, value, child) {
+                          return value.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: _clearSearch,
+                                )
+                              : const SizedBox.shrink();
+                        },
+                      ),
+                      Container(
+                        width: 1,
+                        height: 24,
+                        color: AgroZemexTokens.surfaceContainerLow,
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.tune,
+                          color: AgroZemexTokens.primary,
+                          size: 20,
+                        ),
+                        onPressed: () => _showFilterBottomSheet(context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // Dynamic Bento Property Grid
-          if (_listings.isEmpty && !_isLoading)
-            SliverFillRemaining(
-              child: Center(
-                child: Text(
-                  'No listings found',
-                  style: AgroZemexTokens.bodyLarge,
+            // Dynamic Bento Property Grid
+            if (_listings.isEmpty && !_isLoading)
+              SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    'No listings found',
+                    style: AgroZemexTokens.bodyLarge,
+                  ),
                 ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AgroZemexTokens.marginMobile,
-              ),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AgroZemexTokens.marginMobile,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
                     if (index == _listings.length) {
                       return const Padding(
                         padding: EdgeInsets.symmetric(vertical: 24.0),
@@ -654,45 +717,44 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: _buildPropertyCard(context, _listings[index]),
                     );
-                  },
-                  childCount: _listings.length + (_isLoading ? 1 : 0),
+                  }, childCount: _listings.length + (_isLoading ? 1 : 0)),
                 ),
               ),
-            ),
 
-          // Load More Button
-          if (_hasMore && !_isLoading && _listings.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24.0),
-                child: Center(
-                  child: OutlinedButton(
-                    onPressed: _loadMore,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 14,
+            // Load More Button
+            if (_hasMore && !_isLoading && _listings.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24.0),
+                  child: Center(
+                    child: OutlinedButton(
+                      onPressed: _loadMore,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: AgroZemexTokens.radiusEight,
+                        ),
+                        side: const BorderSide(
+                          color: AgroZemexTokens.onSurfaceVariant,
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AgroZemexTokens.radiusEight,
-                      ),
-                      side: const BorderSide(
-                        color: AgroZemexTokens.onSurfaceVariant,
-                      ),
-                    ),
-                    child: Text(
-                      'Load More Properties',
-                      style: AgroZemexTokens.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
+                      child: Text(
+                        'Load More Properties',
+                        style: AgroZemexTokens.bodyLarge.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 48)),
-        ],
+            const SliverToBoxAdapter(child: SizedBox(height: 48)),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -714,8 +776,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPropertyCard(BuildContext context, ListingCardModel item) {
-    final double? distanceKm =
-        item.distanceMeters != null ? item.distanceMeters! / 1000 : null;
+    final auth = context.read<AuthService>();
+    final wishlistService = context.read<WishlistService>();
+    final uid = auth.user?.uid ?? '';
+
+    final double? distanceKm = item.distanceMeters != null
+        ? item.distanceMeters! / 1000
+        : null;
 
     final bool hasImage = item.photoPaths.isNotEmpty;
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -748,10 +815,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     )
-                  : Image.asset(
-                      AppAssets.defaultLand,
-                      fit: BoxFit.cover,
-                    ),
+                  : Image.asset(AppAssets.defaultLand, fit: BoxFit.cover),
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -766,139 +830,174 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 padding: const EdgeInsets.all(20),
                 child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Category Pills & Favorite
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      if (item.soilType != null && item.soilType!.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AgroZemexTokens.primary.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            item.soilType!.toUpperCase(),
-                            style: AgroZemexTokens.labelCaps.copyWith(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Category Pills & Favorite
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            if (item.soilType != null &&
+                                item.soilType!.isNotEmpty) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AgroZemexTokens.primary.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  item.soilType!.toUpperCase(),
+                                  style: AgroZemexTokens.labelCaps.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            if (item.areaInSqMeters > 20000)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'PREMIUM',
+                                  style: AgroZemexTokens.labelCaps.copyWith(
+                                    color: AgroZemexTokens.onSurface,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
+                        StreamBuilder<bool>(
+                          stream: uid.isNotEmpty
+                              ? wishlistService.isWishlisted(item.id, uid: uid)
+                              : Stream.value(false),
+                          builder: (context, snapshot) {
+                            final isFav = snapshot.data ?? false;
+                            return GestureDetector(
+                              onTap: () {
+                                if (auth.user != null) {
+                                  wishlistService.toggleWishlist(
+                                    item.id,
+                                    uid: auth.user!.uid,
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please login first!'),
+                                    ),
+                                  );
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const LoginScreen(),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: isFav
+                                      ? Colors.red.withValues(alpha: 0.25)
+                                      : Colors.white.withValues(alpha: 0.3),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isFav ? Icons.favorite : Icons.favorite_border,
+                                  color: isFav ? Colors.red : Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ],
-                      if (item.areaInSqMeters > 20000)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'PREMIUM',
-                            style: AgroZemexTokens.labelCaps.copyWith(
-                              color: AgroZemexTokens.onSurface,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.favorite_border,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
 
-              // Title, Specs & Price
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AgroZemexTokens.headlineMedium.copyWith(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        distanceKm != null
-                            ? '${distanceKm.toStringAsFixed(1)} km away'
-                            : 'Bordeaux Region',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: Colors.white70,
+                    // Title, Specs & Price
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AgroZemexTokens.headlineMedium.copyWith(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Icon(
-                        Icons.straighten,
-                        size: 14,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${item.areaInSqMeters.toStringAsFixed(0)} sq m',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: Colors.white70,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_outlined,
+                              size: 14,
+                              color: Colors.white70,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              distanceKm != null
+                                  ? '${distanceKm.toStringAsFixed(1)} km away'
+                                  : 'Resign',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(
+                              Icons.straighten,
+                              size: 14,
+                              color: Colors.white70,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${item.areaInSqMeters.toStringAsFixed(0)} sq m',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '₹ ${item.price.toStringAsFixed(0)}',
-                    style: GoogleFonts.inter(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                        const SizedBox(height: 8),
+                        Text(
+                          '₹ ${item.price.toStringAsFixed(0)}',
+                          style: GoogleFonts.inter(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
         ),
-      ],
-    ),
-    ),
-    ),
+      ),
     );
   }
 
@@ -913,11 +1012,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.explore,
-            size: 40,
-            color: AgroZemexTokens.primary,
-          ),
+          const Icon(Icons.explore, size: 40, color: AgroZemexTokens.primary),
           const SizedBox(height: 8),
           Text(
             'Map View Available',
@@ -962,4 +1057,4 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
+}
