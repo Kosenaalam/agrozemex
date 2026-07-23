@@ -8,6 +8,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/maps/screens/listing_details_screen.dart';
+import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 import '../widgets/area_stats_panel.dart';
 import '../widgets/map_action_buttons.dart';
 import '../services/boundary_service.dart';
@@ -219,11 +220,16 @@ class _MapScreenState extends State<MapScreen> {
           areaInSqMeters: _areaInSqMeters,
         ),
       ),
-    ).then((_) {
+    ).then((result) {
       if (mounted) {
-        setState(() {
-          _isSaved = false;
-        });
+        if (result == true) {
+          _clear();
+          MainNavigationShell.of(context)?.switchTab(0);
+        } else {
+          setState(() {
+            _isSaved = false;
+          });
+        }
       }
     });
   }

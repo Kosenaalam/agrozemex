@@ -1,18 +1,18 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart';
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
-import 'package:agrozemex/shared/services/storage_service.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
 import '../../auth/services/auth_service.dart';
+import '../controllers/listing_details_controller.dart';
 
-class ListingDetailsScreen extends StatefulWidget {
+class ListingDetailsScreen extends ConsumerStatefulWidget {
   final List<mapbox.Point> boundaryPoints;
   final double areaInSqMeters;
 
@@ -23,10 +23,10 @@ class ListingDetailsScreen extends StatefulWidget {
   });
 
   @override
-  State<ListingDetailsScreen> createState() => _ListingDetailsScreenState();
+  ConsumerState<ListingDetailsScreen> createState() => _ListingDetailsScreenState();
 }
 
-class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
+class _ListingDetailsScreenState extends ConsumerState<ListingDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _titleController = TextEditingController();
@@ -43,7 +43,6 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   bool _roadAccess = true;
   bool _electricityAvailable = false;
   bool _isFenced = false;
-  bool _isSubmitting = false;
 
   final List<XFile> _pickedImages = [];
   final ImagePicker _picker = ImagePicker();
@@ -200,7 +199,8 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
   }
 
   Future<void> _submitListing() async {
-    if (_isSubmitting) return;
+    final controllerState = ref.read(listingDetailsControllerProvider).asData?.value;
+    if (controllerState?.isSubmitting == true) return;
 
     if (_pickedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -221,30 +221,16 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
-
     try {
-      final storageService = context.read<StorageService>();
-      final files = _pickedImages.map((e) => File(e.path)).toList();
-      final imageUrls = await storageService.uploadListingImages(files);
-
-      if (!mounted) return;
-      final auth = context.read<AuthService>();
-      if (auth.user == null) throw Exception('User not logged in');
-
-      final rawPriceStr = _priceController.text.replaceAll(',', '').trim();
-      final parsedPrice = double.tryParse(rawPriceStr) ?? 0.0;
-
-      final firestoreService = context.read<UserFirestoreService>();
-      await firestoreService.saveLandListing(
-        uid: auth.user!.uid,
-        title: _titleController.text.trim(),
-        price: parsedPrice,
-        description: _descriptionController.text.trim(),
+      final success = await ref.read(listingDetailsControllerProvider.notifier).submitListing(
+        context: context,
+        pickedImages: _pickedImages,
         areaInSqMeters: widget.areaInSqMeters,
         boundaryPoints: widget.boundaryPoints,
-        photoPaths: imageUrls,
-        village: _villageController.text.trim(),
+        title: _titleController.text,
+        rawPrice: _priceController.text,
+        description: _descriptionController.text,
+        village: _villageController.text,
         soilType: _soilType,
         waterSource: _waterSource,
         roadAccess: _roadAccess,
@@ -256,20 +242,22 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Land listing published successfully!'),
-          backgroundColor: AgroZemexTokens.success,
-        ),
-      );
 
-      Navigator.popUntil(context, (route) => route.isFirst);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Land listing published successfully!'),
+            backgroundColor: AgroZemexTokens.success,
+          ),
+        );
+        // Important: Return true to tell MapScreen it was successful
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error publishing listing: ${e.toString()}')),
         );
-        setState(() => _isSubmitting = false);
       }
     }
   }
@@ -318,8 +306,11 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
         _villageController.text.trim().isNotEmpty ||
         _descriptionController.text.trim().isNotEmpty;
 
+    final controllerState = ref.watch(listingDetailsControllerProvider);
+    final isLoading = controllerState.asData?.value.isSubmitting ?? false;
+
     return PopScope(
-      canPop: !hasUnsavedChanges || _isSubmitting,
+      canPop: !hasUnsavedChanges || isLoading,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldPop = await _showDiscardDraftDialog();
@@ -717,7 +708,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submitListing,
+                    onPressed: isLoading ? null : _submitListing,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AgroZemexTokens.success,
                       foregroundColor: Colors.white,
@@ -726,7 +717,7 @@ class _ListingDetailsScreenState extends State<ListingDetailsScreen> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: _isSubmitting
+                    child: isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
                             'Publish Land Listing',
