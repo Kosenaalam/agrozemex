@@ -65,4 +65,18 @@ class StorageService {
     final results = await Future.wait(uploadTasks);
     return results.whereType<String>().toList();
   }
+
+  Future<String> uploadProfileImage(File file, String uid) async {
+    if (!await file.exists()) {
+      throw Exception("File does not exist");
+    }
+    try {
+      final ref = _storage.ref('profiles/$uid/avatar.jpg');
+      final metadata = SettableMetadata(contentType: 'image/jpeg');
+      final uploadTask = await ref.putFile(file, metadata);
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      throw Exception("Profile image upload failed: ${e.toString()}");
+    }
+  }
 }

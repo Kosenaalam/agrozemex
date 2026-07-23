@@ -14,6 +14,9 @@ class CropCardModel {
   final Timestamp createdAt;
   final bool isActive;
   final List<String> searchTokens;
+  final String createdBy;
+
+  String get sellerId => createdBy;
 
   CropCardModel({
     required this.id,
@@ -29,6 +32,7 @@ class CropCardModel {
     required this.createdAt,
     required this.isActive,
     required this.searchTokens,
+    this.createdBy = '',
   });
 
   factory CropCardModel.fromFirestore(DocumentSnapshot doc) {
@@ -47,6 +51,7 @@ class CropCardModel {
       createdAt: data['created_at'] as Timestamp? ?? Timestamp.now(),
       isActive: data['is_active'] as bool? ?? true,
       searchTokens: List<String>.from(data['search_tokens'] ?? []),
+      createdBy: data['created_by'] ?? '',
     );
   }
 }

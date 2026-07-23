@@ -331,6 +331,15 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  Future<void> updatePhotoUrl(String photoUrl) async {
+    if (user != null) {
+      await user!.updatePhotoURL(photoUrl);
+      await user!.reload();
+      user = _auth.currentUser;
+      notifyListeners();
+    }
+  }
+
   // --- SharedPreferences persistent email & phone storage ---
   Future<void> saveEmailToPrefs(String email) async {
     final prefs = await _sharedPrefs;

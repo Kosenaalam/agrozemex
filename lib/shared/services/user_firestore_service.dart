@@ -17,6 +17,8 @@ class UserFirestoreService {
         'uid': user.uid,
         'email': user.email ?? '',
         'phone': user.phoneNumber ?? '',
+        'name': user.displayName ?? '',
+        'displayName': user.displayName ?? '',
         'createdAt': Timestamp.now(),
         'role': 'buyer',
         'agreedToTerms': agreedToTerms,
@@ -25,6 +27,10 @@ class UserFirestoreService {
     } else {
       final data = snap.data();
       final updates = <String, dynamic>{};
+      if (user.displayName != null && user.displayName!.isNotEmpty && (data == null || data['name'] == null || data['name'] == '')) {
+        updates['name'] = user.displayName;
+        updates['displayName'] = user.displayName;
+      }
       if (user.email != null && (data == null || data['email'] == null || data['email'] == '')) {
         updates['email'] = user.email;
       }
@@ -39,6 +45,22 @@ class UserFirestoreService {
         await ref.update(updates);
       }
     }
+  }
+
+  Future<void> updateUserName(String uid, String name) async {
+    final ref = _db.collection('users').doc(uid);
+    await ref.set({
+      'name': name.trim(),
+      'displayName': name.trim(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> updateUserProfilePhoto(String uid, String photoUrl) async {
+    final ref = _db.collection('users').doc(uid);
+    await ref.set({
+      'photoUrl': photoUrl,
+      'photoURL': photoUrl,
+    }, SetOptions(merge: true));
   }
 
   Future<void> updateUserPhoneAndTerms(String uid, {required String phone, required bool agreedToTerms}) async {

@@ -14,6 +14,7 @@ import 'package:agrozemex/shared/services/wishlist_service.dart';
 import 'package:provider/provider.dart';
 import '../../auth/services/auth_service.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
@@ -26,6 +27,7 @@ class ListingDetailScreen extends StatefulWidget {
   final double areaInSqMeters;
   final List<mapbox.Point> boundaryPoints;
   final List<String> photoPaths;
+  final String? sellerId;
 
   const ListingDetailScreen({
     super.key,
@@ -36,6 +38,7 @@ class ListingDetailScreen extends StatefulWidget {
     required this.areaInSqMeters,
     required this.boundaryPoints,
     required this.photoPaths,
+    this.sellerId,
   });
 
   @override
@@ -49,6 +52,26 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   mapbox.PolylineAnnotationManager? _outlineManager;
 
   Uint8List? _blueCircleIcon;
+
+  Future<Map<String, dynamic>> _fetchSellerData() async {
+    if (widget.sellerId != null && widget.sellerId!.isNotEmpty) {
+      return context.read<UserFirestoreService>().getUserData(widget.sellerId!);
+    }
+    try {
+      final listingDoc = await FirebaseFirestore.instance
+          .collection('listings')
+          .doc(widget.listingId)
+          .get();
+      if (listingDoc.exists) {
+        final createdBy = listingDoc.data()?['created_by'] as String?;
+        if (createdBy != null && createdBy.isNotEmpty) {
+          if (!mounted) return {};
+          return context.read<UserFirestoreService>().getUserData(createdBy);
+        }
+      }
+    } catch (_) {}
+    return {};
+  }
 
   @override
   void initState() {
@@ -525,6 +548,88 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Verified Seller Information Card
+                    FutureBuilder<Map<String, dynamic>>(
+                      future: _fetchSellerData(),
+                      builder: (context, snapshot) {
+                        final sellerData = snapshot.data ?? {};
+                        final sellerName = sellerData['name'] ?? sellerData['displayName'] ?? 'AgroZemex Verified Seller';
+                        final sellerPhone = sellerData['phone'] ?? '';
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: AgroZemexTokens.radiusLargeCard,
+                            boxShadow: AgroZemexTokens.softShadows,
+                          ),
+                          child: Row(
+                            children: [
+                              const CircleAvatar(
+                                radius: 24,
+                                backgroundColor: AgroZemexTokens.primary,
+                                child: Icon(Icons.person, color: Colors.white, size: 28),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'VERIFIED LAND SELLER',
+                                      style: AgroZemexTokens.labelCaps.copyWith(
+                                        color: AgroZemexTokens.primary,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      sellerName,
+                                      style: AgroZemexTokens.bodyLarge.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    if (sellerPhone.isNotEmpty)
+                                      Text(
+                                        sellerPhone,
+                                        style: AgroZemexTokens.bodyMedium.copyWith(
+                                          color: AgroZemexTokens.onSurfaceVariant,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AgroZemexTokens.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.verified, size: 14, color: AgroZemexTokens.primary),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Verified',
+                                      style: TextStyle(
+                                        color: AgroZemexTokens.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

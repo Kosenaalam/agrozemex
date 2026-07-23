@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import 'package:agrozemex/core/theme/theme.dart';
@@ -7,6 +9,7 @@ import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/screens/seller_dashboard.dart';
 import 'package:agrozemex/features/wishlist/screens/wishlist_screen.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
+import 'package:agrozemex/shared/services/storage_service.dart';
 import '../services/auth_service.dart';
 import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 import 'package:agrozemex/shared/services/wishlist_service.dart';
@@ -22,6 +25,159 @@ class ProfileScreenDash extends StatefulWidget {
 class _ProfileScreenDashState extends State<ProfileScreenDash> {
   Future<Map<String, dynamic>>? _profileFuture;
   String? _cachedUid;
+  bool _isUploadingPhoto = false;
+
+  void _showPhotoPickerSheet(BuildContext context, String uid) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Update Profile Photo',
+              style: AgroZemexTokens.headlineMedium.copyWith(
+                color: AgroZemexTokens.primary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AgroZemexTokens.primary),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadPhoto(uid, ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AgroZemexTokens.primary),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAndUploadPhoto(uid, ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadPhoto(String uid, ImageSource source) async {
+    final storageService = context.read<StorageService>();
+    final userService = context.read<UserFirestoreService>();
+    final auth = context.read<AuthService>();
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
+      );
+      if (picked == null) return;
+
+      if (!mounted) return;
+      setState(() => _isUploadingPhoto = true);
+
+      final photoUrl = await storageService.uploadProfileImage(
+        File(picked.path),
+        uid,
+      );
+
+      if (!mounted) return;
+      await userService.updateUserProfilePhoto(uid, photoUrl);
+
+      if (!mounted) return;
+      await auth.updatePhotoUrl(photoUrl);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile photo updated successfully!')),
+        );
+        setState(() {
+          _profileFuture = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update photo: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+      }
+    }
+  }
+
+  void _showEditNameDialog(BuildContext context, String currentName, String uid) {
+    final nameCtrl = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            'Edit Name',
+            style: AgroZemexTokens.headlineMedium.copyWith(
+              color: AgroZemexTokens.primary,
+              fontSize: 20,
+            ),
+          ),
+          content: TextField(
+            controller: nameCtrl,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: 'Full Name',
+              hintText: 'Enter your name',
+              border: OutlineInputBorder(
+                borderRadius: AgroZemexTokens.radiusEight,
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AgroZemexTokens.primary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                final newName = nameCtrl.text.trim();
+                if (newName.isNotEmpty) {
+                  final userService = context.read<UserFirestoreService>();
+                  await userService.updateUserName(uid, newName);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Name updated successfully.')),
+                    );
+                    setState(() {
+                      _profileFuture = null;
+                    });
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,66 +292,110 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                           // Avatar with Verified Badge
                           Stack(
                             children: [
-                              Container(
-                                width: 96,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AgroZemexTokens.surfaceContainerLow,
-                                    width: 4,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.08,
-                                      ),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
+                              GestureDetector(
+                                onTap: () => _showPhotoPickerSheet(context, auth.user!.uid),
+                                child: Container(
+                                  width: 96,
+                                  height: 96,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AgroZemexTokens.surfaceContainerLow,
+                                      width: 4,
                                     ),
-                                  ],
-                                  image: DecorationImage(
-                                    image: auth.user?.photoURL != null
-                                        ? ResizeImage(
-                                                NetworkImage(
-                                                  auth.user!.photoURL!,
-                                                ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.08,
+                                        ),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                    image: DecorationImage(
+                                      image: (userData['photoUrl'] != null && (userData['photoUrl'] as String).isNotEmpty)
+                                          ? ResizeImage(
+                                                NetworkImage(userData['photoUrl']),
                                                 width: 200,
                                                 height: 200,
-                                              )
-                                              as ImageProvider
-                                        : const AssetImage(
-                                            AppAssets.defaultAvatar,
-                                          ),
-                                    fit: BoxFit.cover,
+                                              ) as ImageProvider
+                                          : auth.user?.photoURL != null
+                                              ? ResizeImage(
+                                                    NetworkImage(
+                                                      auth.user!.photoURL!,
+                                                    ),
+                                                    width: 200,
+                                                    height: 200,
+                                                  ) as ImageProvider
+                                              : const AssetImage(
+                                                  AppAssets.defaultAvatar,
+                                                ),
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
                               ),
+                              if (_isUploadingPhoto)
+                                Positioned.fill(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.black.withValues(alpha: 0.4),
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               Positioned(
                                 bottom: 0,
                                 right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: AgroZemexTokens.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.verified,
-                                    color: Colors.white,
-                                    size: 16,
+                                child: GestureDetector(
+                                  onTap: () => _showPhotoPickerSheet(context, auth.user!.uid),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: AgroZemexTokens.primary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      color: Colors.white,
+                                      size: 14,
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            name,
-                            style: AgroZemexTokens.headlineMedium.copyWith(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                name,
+                                style: AgroZemexTokens.headlineMedium.copyWith(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 18,
+                                  color: AgroZemexTokens.primary,
+                                ),
+                                tooltip: 'Edit Name',
+                                onPressed: () => _showEditNameDialog(
+                                  context,
+                                  name == 'User Name' ? '' : name,
+                                  auth.user!.uid,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 6),
                           Container(

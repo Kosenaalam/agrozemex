@@ -100,6 +100,9 @@ MultiProvider(
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | `uid` | String | Unique Firebase Auth identifier |
+| `name` | String | User full name / Display name |
+| `displayName` | String | User full name alias |
+| `photoUrl` | String | Firebase Storage custom profile picture URL |
 | `email` | String | User email address |
 | `phone` | String | Verified contact phone number |
 | `role` | String | User role (`buyer`, `seller`, `admin`) |

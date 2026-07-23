@@ -449,44 +449,51 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                const CircleAvatar(
-                                  radius: 26,
-                                  backgroundColor: AgroZemexTokens.primary,
-                                  child: Icon(
-                                    Icons.person,
-                                    color: Colors.white,
-                                    size: 30,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                            FutureBuilder<Map<String, dynamic>>(
+                              future: context.read<UserFirestoreService>().getUserData(item.sellerId),
+                              builder: (context, snapshot) {
+                                final sellerData = snapshot.data ?? {};
+                                final sellerName = sellerData['name'] ?? sellerData['displayName'] ?? 'Verified Crop Seller';
+                                return Row(
                                   children: [
-                                    Text(
-                                      'Rajesh K. Parmar',
-                                      style: AgroZemexTokens.bodyLarge.copyWith(
-                                        fontWeight: FontWeight.bold,
+                                    const CircleAvatar(
+                                      radius: 26,
+                                      backgroundColor: AgroZemexTokens.primary,
+                                      child: Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 30,
                                       ),
                                     ),
-                                    Row(
+                                    const SizedBox(width: 14),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Icon(
-                                          Icons.star,
-                                          color: Colors.amber,
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 4),
                                         Text(
-                                          '4.9 (124 reviews)',
-                                          style: AgroZemexTokens.labelCaps,
+                                          sellerName,
+                                          style: AgroZemexTokens.bodyLarge.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.star,
+                                              color: Colors.amber,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '4.9 (124 reviews)',
+                                              style: AgroZemexTokens.labelCaps,
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
                                   ],
-                                ),
-                              ],
+                                );
+                              },
                             ),
                           ],
                         ),
