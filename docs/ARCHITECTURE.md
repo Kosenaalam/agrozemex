@@ -12,7 +12,7 @@ AgroZemex follows **Clean Architecture** principles combined with a **Feature-Fi
 ```
 lib/
 ├── core/                   # System initialization, global app root, and design tokens
-│   ├── app_root.dart       # Main MultiProvider and RootDecider widget
+│   ├── app_root.dart       # Main MultiProvider and global AppRoot widget
 │   ├── init.dart           # Asynchronous background service initialization
 │   └── theme/              # Design tokens (colors, typography, light theme)
 ├── features/               # Feature-First Business Modules

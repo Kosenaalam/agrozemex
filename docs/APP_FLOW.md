@@ -17,25 +17,26 @@ flowchart TD
     E --> F[MultiProvider Setup]
     F --> G[Execute Non-blocking AppInit.initializeBackgroundServices]
     G --> H[Mapbox Token & Async Location Init]
-    F --> I[RootDecider Check Auth State]
+    F --> I[WelcomeScreen Check Auth State]
 ```
 
 ---
 
 ## 2. Authentication & Root Routing Decision Flow
 
-`RootDecider` evaluates the user state and directs them to either the main app shell or the authentication screen.
+`WelcomeScreen` evaluates the user state after its animation and directs them to either the main app shell or the authentication screen.
 
 ```mermaid
 flowchart TD
-    A[RootDecider Built] --> B{AuthService.isLoading?}
-    B -- Yes --> C[Show Circular Loading Spinner]
-    B -- No --> D{Firebase User Logged In?}
-    D -- Yes --> E[Navigate to MainNavigationShell]
-    D -- No --> F[Read saved phone/email from SharedPreferences]
-    F --> G{Saved Credential Exists?}
-    G -- Yes --> H[Navigate to LoginScreen with Initial Phone]
-    G -- No --> E[Navigate to MainNavigationShell as Guest]
+    A[AppRoot Built] --> B[WelcomeScreen as Home]
+    B --> C[Play Splash Animation]
+    C --> D{AuthService.isLoading?}
+    D -- Yes --> E[Await isLoading == false]
+    E --> F{Firebase User Logged In?}
+    D -- No --> F
+    F -- Yes --> G[Navigate to MainNavigationShell]
+    F -- No --> H[Read savedPhone from SharedPreferences]
+    H --> I[Navigate to LoginScreen with savedPhone]
 ```
 
 ---

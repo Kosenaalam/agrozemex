@@ -8,6 +8,7 @@ import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/screens/seller_dashboard.dart';
 import 'package:agrozemex/features/wishlist/screens/wishlist_screen.dart';
+import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
 import 'package:agrozemex/shared/services/storage_service.dart';
 import '../services/auth_service.dart';
@@ -212,7 +213,10 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
 
         final userData = snapshot.data!;
         final name = userData['name'] ?? userData['displayName'] ?? 'User Name';
-        final phone = userData['phone'] ?? '';
+        final rawPhone = (userData['phone'] as String?) ??
+            (userData['phoneNumber'] as String?) ??
+            (auth.user?.phoneNumber ?? '');
+        final phone = rawPhone.trim();
         final email = userData['email'] ?? auth.user?.email ?? 'N/A';
         final role = userData['role'] ?? 'buyer';
 
@@ -454,12 +458,33 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  phone.isNotEmpty ? phone : '+91 0000000000',
+                                  phone.isNotEmpty ? phone : 'Add / Verify Phone Number',
                                   style: AgroZemexTokens.bodyLarge.copyWith(
                                     fontSize: 14,
-                                    color: AgroZemexTokens.onSurfaceVariant,
+                                    color: phone.isNotEmpty
+                                        ? AgroZemexTokens.onSurfaceVariant
+                                        : AgroZemexTokens.secondary,
+                                    fontStyle: phone.isNotEmpty
+                                        ? FontStyle.normal
+                                        : FontStyle.italic,
                                   ),
                                 ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 18,
+                                  color: AgroZemexTokens.primary,
+                                ),
+                                tooltip: phone.isNotEmpty ? 'Update Phone' : 'Add Phone Number',
+                                onPressed: () async {
+                                  final success = await PhoneBindingDialog.show(context);
+                                  if (success && mounted) {
+                                    setState(() {
+                                      _profileFuture = null;
+                                    });
+                                  }
+                                },
                               ),
                             ],
                           ),

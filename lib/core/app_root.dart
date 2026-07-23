@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:agrozemex/features/welcome/welcome_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/services/auth_service.dart';
 import '../features/crops/services/crop_query_service.dart';
@@ -41,7 +42,7 @@ class AppRoot extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'AgroZemex',
         theme: AgroZemexTheme.lightTheme,
-        home: const RootDecider(),
+        home: const WelcomeScreen(),
       ),
     );
   }

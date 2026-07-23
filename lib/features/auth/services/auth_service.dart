@@ -274,6 +274,7 @@ class AuthService extends ChangeNotifier {
         },
         codeAutoRetrievalTimeout: (String verificationId) {
           debugPrint("OTP auto retrieval timeout for $verificationId");
+          onCodeSent(verificationId, null);
         },
       );
     } catch (e) {
@@ -297,14 +298,15 @@ class AuthService extends ChangeNotifier {
       return cred;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'invalid-verification-code') {
-        throw AuthException('invalid-verification-code', 'Invalid OTP. Please check the code and try again.');
-      } else if (e.code == 'session-expired') {
-        throw AuthException('session-expired', 'OTP session expired. Please request a new code.');
+        throw AuthException('invalid-verification-code', 'Invalid OTP code. Please check the code and try again.');
+      } else if (e.code == 'session-expired' || e.code == 'invalid-verification-id') {
+        throw AuthException('session-expired', 'OTP session has expired. Please tap Resend OTP for a new code.');
       } else {
-        throw AuthException(e.code, e.message ?? 'Authentication failed.');
+        throw AuthException(e.code, e.message ?? 'Authentication failed. Please try again.');
       }
     } catch (e) {
-      throw AuthException('unknown', 'Unexpected error during verification. Please try again.');
+      if (e is AuthException) rethrow;
+      throw AuthException('unknown', e.toString().replaceFirst('Exception: ', ''));
     }
   }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -142,195 +143,217 @@ class _PhoneBindingDialogState extends State<PhoneBindingDialog> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 24,
-        bottom: 24 + bottomInset,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Phone Verification Required',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AgroZemexTokens.primary,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context, false),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'To view listing details and contact sellers, please bind your phone number and accept contact inquiry terms.',
-            style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 16),
-          if (_errorMessage != null) ...[
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                border: Border.all(color: Colors.red[200]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _errorMessage!,
-                style: GoogleFonts.inter(color: Colors.red[800], fontSize: 12),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (!_isOtpSent) ...[
-            Row(
-              children: [
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _countryCode,
-                      items: const [
-                        DropdownMenuItem(value: '+91', child: Text('🇮🇳 +91')),
-                        DropdownMenuItem(value: '+1', child: Text('🇺🇸 +1')),
-                        DropdownMenuItem(value: '+44', child: Text('🇬🇧 +44')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _countryCode = val);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _phoneCtrl,
-                    keyboardType: TextInputType.phone,
-                    maxLength: 10,
-                    decoration: InputDecoration(
-                      hintText: 'Enter phone number',
-                      counterText: '',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: Checkbox(
-                    value: _agreedToTerms,
-                    activeColor: AgroZemexTokens.primary,
-                    onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'I agree to Terms & Privacy Policy and consent to sharing my phone number with land/crop sellers for inquiries.',
-                    style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700]),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _sendOtp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AgroZemexTokens.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('Send OTP Code'),
-                    ),
-                  ),
-          ] else ...[
-            Text(
-              'Enter 6-digit code sent to $_countryCode ${_phoneCtrl.text}',
-              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 16),
+    return SafeArea(
+      child: Container(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: 24 + bottomInset,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(6, (index) {
-                return SizedBox(
-                  width: 42,
-                  height: 48,
-                  child: TextField(
-                    controller: _otpDigitCtrls[index],
-                    focusNode: _otpFocusNodes[index],
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    maxLength: 1,
-                    onChanged: (val) {
-                      if (val.isNotEmpty && index < 5) {
-                        _otpFocusNodes[index + 1].requestFocus();
-                      } else if (val.isEmpty && index > 0) {
-                        _otpFocusNodes[index - 1].requestFocus();
-                      }
-                    },
-                    decoration: InputDecoration(
-                      counterText: '',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+              children: [
+                Text(
+                  'Phone Verification Required',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AgroZemexTokens.primary,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'To view listing details and contact sellers, please bind your phone number and accept contact inquiry terms.',
+              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  border: Border.all(color: Colors.red[200]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: GoogleFonts.inter(color: Colors.red[800], fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (!_isOtpSent) ...[
+              Row(
+                children: [
+                  Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _countryCode,
+                        items: const [
+                          DropdownMenuItem(value: '+91', child: Text('🇮🇳 +91')),
+                          DropdownMenuItem(value: '+1', child: Text('🇺🇸 +1')),
+                          DropdownMenuItem(value: '+44', child: Text('🇬🇧 +44')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _countryCode = val);
+                        },
                       ),
                     ),
                   ),
-                );
-              }),
-            ),
-            const SizedBox(height: 16),
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _verifyOtp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AgroZemexTokens.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _phoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 10,
+                      decoration: InputDecoration(
+                        hintText: 'Enter phone number',
+                        counterText: '',
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text('Verify Phone & Unlock Details'),
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: _agreedToTerms,
+                      activeColor: AgroZemexTokens.primary,
+                      onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'I agree to Terms & Privacy Policy and consent to sharing my phone number with land/crop sellers for inquiries.',
+                      style: GoogleFonts.inter(fontSize: 11, color: Colors.grey[700]),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _sendOtp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AgroZemexTokens.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('Send OTP Code'),
+                      ),
+                    ),
+            ] else ...[
+              Text(
+                'Enter 6-digit code sent to $_countryCode ${_phoneCtrl.text}',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(6, (index) {
+                  return SizedBox(
+                    width: 42,
+                    height: 48,
+                    child: TextField(
+                      controller: _otpDigitCtrls[index],
+                      focusNode: _otpFocusNodes[index],
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      maxLength: 1,
+                      onChanged: (val) {
+                        if (val.length > 1) {
+                          final digits = val.replaceAll(RegExp(r'[^\d]'), '');
+                          for (int i = 0; i < 6; i++) {
+                            if (i < digits.length) {
+                              _otpDigitCtrls[i].text = digits[i];
+                            } else {
+                              _otpDigitCtrls[i].clear();
+                            }
+                          }
+                          if (digits.length >= 6) {
+                            _otpFocusNodes[5].unfocus();
+                          } else if (digits.isNotEmpty) {
+                            _otpFocusNodes[math.min(digits.length, 5)].requestFocus();
+                          }
+                          return;
+                        }
+                        if (val.isNotEmpty) {
+                          if (index < 5) {
+                            _otpFocusNodes[index + 1].requestFocus();
+                          } else {
+                            _otpFocusNodes[index].unfocus();
+                          }
+                        } else if (val.isEmpty && index > 0) {
+                          _otpFocusNodes[index - 1].requestFocus();
+                        }
+                      },
+                      decoration: InputDecoration(
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 16),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _verifyOtp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AgroZemexTokens.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('Verify Phone & Unlock Details'),
+                      ),
+                    ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

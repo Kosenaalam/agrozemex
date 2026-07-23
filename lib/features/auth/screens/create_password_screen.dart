@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:agrozemex/features/welcome/welcome_screen.dart';
 import '../services/auth_service.dart';
 import 'package:agrozemex/core/theme/theme.dart';
 
@@ -287,9 +288,9 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                               );
                             }
                             if (context.mounted) {
-                              Navigator.popUntil(
-                                context,
-                                (route) => route.isFirst,
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                                (route) => false,
                               );
                             }
                           } on AuthException catch (e) {

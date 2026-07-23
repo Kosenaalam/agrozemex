@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/auth/screens/create_password_screen.dart';
+import 'package:agrozemex/features/welcome/welcome_screen.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -226,6 +228,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _verifyOtp() async {
+    final auth = context.read<AuthService>();
+    if (auth.user != null) {
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (route) => false,
+        );
+      }
+      return;
+    }
+
     _syncOtpFromDigits();
     final otp = _otpCtrl.text.trim();
     if (otp.length != 6) {
@@ -244,10 +257,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final nav = Navigator.of(context);
-      final auth = context.read<AuthService>();
       await auth.verifyOtp(_verificationId!, otp);
       if (mounted) {
-        nav.popUntil((route) => route.isFirst);
+        nav.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -273,7 +288,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final auth = context.read<AuthService>();
       await auth.signInWithGoogle();
       if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -297,7 +315,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final auth = context.read<AuthService>();
       await auth.signInWithApple();
       if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -884,9 +905,28 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 onChanged: (val) {
+                                  if (val.length > 1) {
+                                    final digits = val.replaceAll(RegExp(r'[^\d]'), '');
+                                    for (int i = 0; i < 6; i++) {
+                                      if (i < digits.length) {
+                                        _otpDigitCtrls[i].text = digits[i];
+                                      } else {
+                                        _otpDigitCtrls[i].clear();
+                                      }
+                                    }
+                                    if (digits.length >= 6) {
+                                      _otpFocusNodes[5].unfocus();
+                                    } else if (digits.isNotEmpty) {
+                                      _otpFocusNodes[math.min(digits.length, 5)].requestFocus();
+                                    }
+                                    _syncOtpFromDigits();
+                                    return;
+                                  }
                                   if (val.isNotEmpty) {
                                     if (index < 5) {
                                       _otpFocusNodes[index + 1].requestFocus();
+                                    } else {
+                                      _otpFocusNodes[index].unfocus();
                                     }
                                   } else {
                                     if (index > 0) {
