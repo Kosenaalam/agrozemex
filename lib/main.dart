@@ -5,8 +5,13 @@ import 'firebase_options.dart';
 import 'core/app_root.dart';
 import 'core/init.dart';
 
+import 'package:agrozemex/shared/services/hive_cache_service.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Hive offline disk cache
+  await HiveCacheService.init();
 
   // Allow runtime fetching as fallback; bundled fonts in assets/fonts/ take primary precedence offline
   GoogleFonts.config.allowRuntimeFetching = true;

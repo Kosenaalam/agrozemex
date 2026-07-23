@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/crop_card_model.dart';
+import '../../../shared/services/hive_cache_service.dart';
 
 class CropQueryService {
   final FirebaseFirestore _db;
@@ -47,21 +48,49 @@ class CropQueryService {
       query = query.startAfterDocument(_lastDoc!);
     }
 
-    final snap = await query.get();
-    _hasMore = snap.docs.length >= limit;
-    if (snap.docs.isEmpty) return [];
+    try {
+      final snap = await query.get();
+      _hasMore = snap.docs.length >= limit;
+      if (snap.docs.isEmpty) return [];
 
-    _lastDoc = snap.docs.last;
-    var list = snap.docs.map((doc) => CropCardModel.fromFirestore(doc)).toList();
+      _lastDoc = snap.docs.last;
 
-    // In-memory price range filtering to prevent range query sorting crashes on Firestore
-    if (minPrice != null) {
-      list = list.where((item) => item.price >= minPrice).toList();
+      final rawMaps = <Map<String, dynamic>>[];
+      for (final doc in snap.docs) {
+        final m = Map<String, dynamic>.from(doc.data() as Map);
+        m['id'] = doc.id;
+        rawMaps.add(m);
+      }
+      // Cache fetched crop listings into Hive
+      HiveCacheService.cacheCropListings(rawMaps);
+
+      var list = snap.docs.map((doc) => CropCardModel.fromFirestore(doc)).toList();
+
+      if (minPrice != null) {
+        list = list.where((item) => item.price >= minPrice).toList();
+      }
+      if (maxPrice != null) {
+        list = list.where((item) => item.price <= maxPrice).toList();
+      }
+      return list;
+    } catch (e) {
+      // Offline fallback: Read cached crop listings from Hive
+      final cachedMaps = HiveCacheService.getCachedCropListings();
+      if (cachedMaps.isEmpty) return [];
+
+      var list = cachedMaps
+          .map((m) => CropCardModel.fromMap(m, m['id'] as String? ?? ''))
+          .toList();
+
+      if (minPrice != null) {
+        list = list.where((item) => item.price >= minPrice).toList();
+      }
+      if (maxPrice != null) {
+        list = list.where((item) => item.price <= maxPrice).toList();
+      }
+      _hasMore = false;
+      return list;
     }
-    if (maxPrice != null) {
-      list = list.where((item) => item.price <= maxPrice).toList();
-    }
-    return list;
   }
 
   void resetPagination() {

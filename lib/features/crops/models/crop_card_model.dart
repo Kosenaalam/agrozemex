@@ -35,10 +35,9 @@ class CropCardModel {
     this.createdBy = '',
   });
 
-  factory CropCardModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory CropCardModel.fromMap(Map<String, dynamic> data, String id) {
     return CropCardModel(
-      id: doc.id,
+      id: id,
       title: data['title'] ?? 'N/A',
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
       description: data['description'] ?? '',
@@ -47,11 +46,20 @@ class CropCardModel {
       cropType: data['crop_type'] ?? 'Unknown',
       unit: data['unit'] ?? 'kg',
       village: data['village'] ?? 'Unknown',
-      location: data['location'] as GeoPoint? ?? const GeoPoint(0, 0),
-      createdAt: data['created_at'] as Timestamp? ?? Timestamp.now(),
+      location: data['location'] is GeoPoint
+          ? data['location'] as GeoPoint
+          : const GeoPoint(0, 0),
+      createdAt: data['created_at'] is Timestamp
+          ? data['created_at'] as Timestamp
+          : Timestamp.now(),
       isActive: data['is_active'] as bool? ?? true,
       searchTokens: List<String>.from(data['search_tokens'] ?? []),
       createdBy: data['created_by'] ?? '',
     );
+  }
+
+  factory CropCardModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return CropCardModel.fromMap(data, doc.id);
   }
 }

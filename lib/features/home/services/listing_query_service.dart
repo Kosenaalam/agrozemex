@@ -6,6 +6,7 @@ import '../models/listing_card_model.dart';
 import '../../../shared/services/distance_service.dart';
 import '../../../shared/services/location_service.dart';
 import '../../../shared/services/search_token_service.dart';
+import '../../../shared/services/hive_cache_service.dart';
 import 'search_rank_service.dart';
 
 class ListingQueryService {
@@ -62,10 +63,9 @@ class ListingQueryService {
     }).toList();
   }
 
-  ListingCardModel _docToModel(DocumentSnapshot doc, Position? position) {
-    final data = doc.data() as Map<String, dynamic>;
+  ListingCardModel _mapToModel(Map<String, dynamic> data, String id, Position? position) {
     final List<String> searchTokens = List<String>.from(data['search_tokens'] ?? []);
-    final boundaryPoints = (data['boundary_points'] as List)
+    final boundaryPoints = ((data['boundary_points'] as List?) ?? [])
         .map((p) => mapbox.Point(coordinates: mapbox.Position(p['lng'], p['lat'])))
         .toList();
 
@@ -77,17 +77,17 @@ class ListingQueryService {
             boundaryPoints: boundaryPoints,
           );
 
-    final double? centerLat = data['center_lat'] as double? ??
+    final double? centerLat = (data['center_lat'] as num?)?.toDouble() ??
         (boundaryPoints.isEmpty ? null : boundaryPoints.map((p) => p.coordinates.lat).reduce((a, b) => a + b) / boundaryPoints.length);
-    final double? centerLng = data['center_lng'] as double? ??
+    final double? centerLng = (data['center_lng'] as num?)?.toDouble() ??
         (boundaryPoints.isEmpty ? null : boundaryPoints.map((p) => p.coordinates.lng).reduce((a, b) => a + b) / boundaryPoints.length);
 
     return ListingCardModel(
-      id: doc.id,
-      title: data['title'],
-      price: (data['price'] as num).toDouble(),
-      description: data['description'],
-      areaInSqMeters: (data['area_sq_m'] as num).toDouble(),
+      id: id,
+      title: data['title'] ?? 'Land Listing',
+      price: (data['price'] as num? ?? 0).toDouble(),
+      description: data['description'] ?? '',
+      areaInSqMeters: (data['area_sq_m'] as num? ?? 0).toDouble(),
       boundaryPoints: boundaryPoints,
       photoPaths: List<String>.from(data['photo_paths'] ?? []),
       distanceMeters: distanceMeters,
@@ -97,8 +97,14 @@ class ListingQueryService {
       searchTokens: searchTokens,
       centerLat: centerLat,
       centerLng: centerLng,
-      sellerId: data['created_by'] as String? ?? '',
+      sellerId: data['created_by'] as String? ?? data['seller_uid'] as String? ?? '',
     );
+  }
+
+  ListingCardModel _docToModel(DocumentSnapshot doc, Position? position) {
+    final data = doc.data() as Map<String, dynamic>;
+    data['id'] = doc.id;
+    return _mapToModel(data, doc.id, position);
   }
 
   Future<List<ListingCardModel>> fetchListingsInBounds({
@@ -178,34 +184,57 @@ class ListingQueryService {
       query = query.startAfterDocument(_lastDocument!);
     }
 
-    final snapshot = await query.get();
-    _hasMore = snapshot.docs.length >= limit;
-    if (snapshot.docs.isEmpty) {
-      return [];
+    try {
+      final snapshot = await query.get();
+      _hasMore = snapshot.docs.length >= limit;
+      if (snapshot.docs.isEmpty) {
+        return [];
+      }
+
+      _lastDocument = snapshot.docs.last;
+
+      final rawMaps = <Map<String, dynamic>>[];
+      for (final doc in snapshot.docs) {
+        final m = Map<String, dynamic>.from(doc.data() as Map);
+        m['id'] = doc.id;
+        rawMaps.add(m);
+      }
+      // Cache fetched land listings into Hive for offline access
+      HiveCacheService.cacheLandListings(rawMaps);
+
+      var list = snapshot.docs.map((doc) => _docToModel(doc, position)).toList();
+
+      list = _applyFilters(list, filter);
+
+      if (searchQuery.isNotEmpty) {
+        list.sort((a, b) {
+          final scoreA = _searchRankService.calculateScore(item: a, query: searchQuery);
+          final scoreB = _searchRankService.calculateScore(item: b, query: searchQuery);
+          return scoreB.compareTo(scoreA);
+        });
+      } else {
+        list.sort((a, b) {
+          if (a.distanceMeters == null && b.distanceMeters == null) return 0;
+          if (a.distanceMeters == null) return 1;
+          if (b.distanceMeters == null) return -1;
+          return a.distanceMeters!.compareTo(b.distanceMeters!);
+        });
+      }
+
+      return list;
+    } catch (e) {
+      // Offline fallback: Read cached land listings from Hive
+      final cachedMaps = HiveCacheService.getCachedLandListings();
+      if (cachedMaps.isEmpty) return [];
+
+      var list = cachedMaps
+          .map((m) => _mapToModel(m, m['id'] as String? ?? '', position))
+          .toList();
+
+      list = _applyFilters(list, filter);
+      _hasMore = false;
+      return list;
     }
-
-    _lastDocument = snapshot.docs.last;
-
-    var list = snapshot.docs.map((doc) => _docToModel(doc, position)).toList();
-
-    list = _applyFilters(list, filter);
-
-    if (searchQuery.isNotEmpty) {
-      list.sort((a, b) {
-        final scoreA = _searchRankService.calculateScore(item: a, query: searchQuery);
-        final scoreB = _searchRankService.calculateScore(item: b, query: searchQuery);
-        return scoreB.compareTo(scoreA);
-      });
-    } else {
-      list.sort((a, b) {
-        if (a.distanceMeters == null && b.distanceMeters == null) return 0;
-        if (a.distanceMeters == null) return 1;
-        if (b.distanceMeters == null) return -1;
-        return a.distanceMeters!.compareTo(b.distanceMeters!);
-      });
-    }
-
-    return list;
   }
 
   void resetPagination() {

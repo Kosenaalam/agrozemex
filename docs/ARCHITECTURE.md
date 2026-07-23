@@ -65,7 +65,8 @@ lib/
 
 ### Network Connectivity & Offline Architecture
 - **`ConnectivityService` (`core/services/connectivity_service.dart`)**: Reactive network monitor extending `ChangeNotifier`. Listens to hardware connectivity changes via `connectivity_plus` and verifies WAN internet reachability using active socket pings.
-- **`OfflineBanner` (`shared/widget/offline_banner.dart`)**: Animated global top banner providing real-time visual feedback when internet connection drops (`📡 Offline Mode Active`) or reconnects (`✓ Connection Restored`). Prepares the app for Hive offline data fallback.
+- **`OfflineBanner` (`shared/widget/offline_banner.dart`)**: Animated global top banner providing real-time visual feedback when internet connection drops (`📡 Offline Mode Active`) or reconnects (`✓ Connection Restored`).
+- **`HiveCacheService` (`shared/services/hive_cache_service.dart`)**: High-performance key-value disk caching layer (`hive_flutter`). Manages `land_listings_box`, `crop_listings_box`, and `user_preferences_box`. Automatically synchronizes online Firestore payloads to local disk and triggers transparent offline fallbacks in `ListingQueryService` and `CropQueryService`.
 
 ---
 

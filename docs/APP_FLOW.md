@@ -197,6 +197,20 @@ flowchart TD
     F -- Yes --> G[Update ConnectivityService isConnected = true]
     G --> H[OfflineBanner Animates Green Bar: ✓ Connection Restored]
     H --> I[Auto-Dismiss Green Banner After 3 Seconds]
+### 4.10 Hive Offline Data Caching & Fallback Flow
+
+```mermaid
+flowchart TD
+    A[App Startup main.dart] --> B[Execute HiveCacheService.init]
+    B --> C[Open land_listings_box, crop_listings_box, and user_preferences_box]
+    D[Query Engine: ListingQueryService / CropQueryService] --> E{Network Online & Firestore Query Successful?}
+    E -- Yes --> F[Parse Firestore Snapshot Documents]
+    F --> G[Asynchronously Write Raw Maps to Hive Cache Boxes]
+    F --> H[Return Live Marketplace Models to UI]
+    E -- No / Exception --> I[Trigger Catch Block: Hive Cache Fallback]
+    I --> J[Read Raw Maps from Hive Cache Boxes]
+    J --> K[Parse Cached Maps into Models]
+    K --> L[Render Cached Land & Crop Listings on UI Offline]
 ```
 
 ---
