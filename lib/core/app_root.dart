@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope; // Added Riverpod support
 
 import 'package:agrozemex/features/welcome/welcome_screen.dart';
 import '../features/auth/screens/login_screen.dart';
@@ -24,25 +25,27 @@ class AppRoot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ConnectivityService()),
-        ChangeNotifierProvider(create: (_) => AuthService()),
-        Provider(create: (_) => UserFirestoreService()),
-        Provider(create: (_) => ListingQueryService()),
-        Provider(create: (_) => ListingSearchService()),
-        Provider(create: (_) => StorageService()),
-        Provider(create: (_) => CropQueryService()),
-        Provider(create: (_) => CropSearchService()),
-        Provider(create: (_) => WishlistService()),
-        Provider(create: (_) => VisitBookingService()),
-        Provider<LocationService>(create: (_) => AppInit.locationService),
-      ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'AgroZemex',
-        theme: AgroZemexTheme.lightTheme,
-        home: const WelcomeScreen(),
+    return ProviderScope(
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ConnectivityService()),
+          ChangeNotifierProvider(create: (_) => AuthService()),
+          Provider(create: (_) => UserFirestoreService()),
+          Provider(create: (_) => ListingQueryService()),
+          Provider(create: (_) => ListingSearchService()),
+          Provider(create: (_) => StorageService()),
+          Provider(create: (_) => CropQueryService()),
+          Provider(create: (_) => CropSearchService()),
+          Provider(create: (_) => WishlistService()),
+          Provider(create: (_) => VisitBookingService()),
+          Provider<LocationService>(create: (_) => AppInit.locationService),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'AgroZemex',
+          theme: AgroZemexTheme.lightTheme,
+          home: const WelcomeScreen(),
+        ),
       ),
     );
   }

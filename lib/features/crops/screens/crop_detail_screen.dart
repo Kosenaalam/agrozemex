@@ -509,13 +509,13 @@ Check out this harvest on AgroZemex App!
                             Icons.grass_outlined,
                           ),
                           _buildBentoStatCard(
-                            'MOISTURE',
-                            '11.4%',
-                            Icons.water_drop_outlined,
+                            'FARMING TYPE',
+                            item.isOrganic ? 'Organic Certified' : 'Conventional',
+                            Icons.eco_outlined,
                           ),
                           _buildBentoStatCard(
-                            'HARVEST DATE',
-                            'Fresh Yield',
+                            'AVAILABILITY',
+                            item.harvestStatus,
                             Icons.calendar_month_outlined,
                           ),
                         ],

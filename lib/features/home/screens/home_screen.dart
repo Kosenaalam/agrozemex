@@ -7,6 +7,10 @@ import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/auth/screens/login_screen.dart';
 import 'package:agrozemex/features/auth/screens/profile_screen_dash.dart';
 import 'package:agrozemex/features/auth/services/auth_service.dart';
+import 'package:agrozemex/features/legal/screens/about_us_screen.dart';
+import 'package:agrozemex/features/legal/screens/help_support_screen.dart';
+import 'package:agrozemex/features/legal/screens/policies_screen.dart';
+import 'package:agrozemex/features/legal/screens/terms_conditions_screen.dart';
 import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 import '../../maps/screens/map_screen.dart';
 import '../models/listing_card_model.dart';
@@ -487,10 +491,52 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text('Help & Support'),
               onTap: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Support email: support@agrozemex.com'),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+                );
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(
+                Icons.info_outline,
+                color: AgroZemexTokens.primary,
+              ),
+              title: const Text('About Us'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AboutUsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.policy_outlined,
+                color: AgroZemexTokens.primary,
+              ),
+              title: const Text('Policies'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PoliciesScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.description_outlined,
+                color: AgroZemexTokens.primary,
+              ),
+              title: const Text('Terms & Conditions'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TermsConditionsScreen()),
                 );
               },
             ),

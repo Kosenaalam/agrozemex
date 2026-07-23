@@ -216,6 +216,8 @@ class UserFirestoreService {
     required String unit,
     required String village,
     required GeoPoint location,
+    String harvestStatus = 'Ready for Pickup',
+    bool isOrganic = false,
   }) async {
     final searchTokens = CropSearchService.buildSearchTokens(
       title: title,
@@ -238,6 +240,8 @@ class UserFirestoreService {
       'created_at': FieldValue.serverTimestamp(),
       'search_tokens': searchTokens,
       'is_active': true,
+      'harvest_status': harvestStatus,
+      'is_organic': isOrganic,
     });
 
     final userDoc = _db.collection('users').doc(uid);

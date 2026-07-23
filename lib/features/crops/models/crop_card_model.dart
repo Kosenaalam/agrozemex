@@ -16,6 +16,9 @@ class CropCardModel {
   final List<String> searchTokens;
   final String createdBy;
 
+  final String harvestStatus;
+  final bool isOrganic;
+
   String get sellerId => createdBy;
 
   CropCardModel({
@@ -33,6 +36,8 @@ class CropCardModel {
     required this.isActive,
     required this.searchTokens,
     this.createdBy = '',
+    this.harvestStatus = 'Ready for Pickup',
+    this.isOrganic = false,
   });
 
   factory CropCardModel.fromMap(Map<String, dynamic> data, String id) {
@@ -62,6 +67,8 @@ class CropCardModel {
       isActive: data['is_active'] as bool? ?? true,
       searchTokens: List<String>.from(data['search_tokens'] ?? []),
       createdBy: data['created_by'] ?? '',
+      harvestStatus: data['harvest_status'] ?? 'Ready for Pickup',
+      isOrganic: data['is_organic'] as bool? ?? false,
     );
   }
 
