@@ -10,10 +10,6 @@ Future<void> main() async {
 
   // Allow runtime fetching as fallback; bundled fonts in assets/fonts/ take primary precedence offline
   GoogleFonts.config.allowRuntimeFetching = true;
-  /*
-  // Previous code:
-  GoogleFonts.config.allowRuntimeFetching = false;
-  */
 
   // Initialize Firebase [DEFAULT] app BEFORE mounting AppRoot so FirebaseAuth.instance never fails
   try {
