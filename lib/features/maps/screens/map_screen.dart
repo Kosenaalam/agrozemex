@@ -143,9 +143,11 @@ class _MapScreenState extends State<MapScreen> {
 
     if (_boundaryPoints.length < 3) return;
 
+    final sortedPoints = BoundaryService.sortClockwise(_boundaryPoints);
+
     final List<mapbox.Position> closedRing = [
-      ..._boundaryPoints.map((p) => p.coordinates),
-      _boundaryPoints.first.coordinates,
+      ...sortedPoints.map((p) => p.coordinates),
+      sortedPoints.first.coordinates,
     ];
 
     await _polygonManager?.create(
@@ -158,14 +160,15 @@ class _MapScreenState extends State<MapScreen> {
     await _outlineManager?.create(
       mapbox.PolylineAnnotationOptions(
         geometry: mapbox.LineString(coordinates: closedRing),
-        lineColor: AgroZemexTokens.primary.toARGB32(),
+        lineColor: Colors.blue.toARGB32(),
         lineWidth: 3.5,
       ),
     );
   }
 
   double _calculateAreaSqMeters() {
-    return BoundaryService.calculateAreaSqMeters(_boundaryPoints);
+    final sortedPoints = BoundaryService.sortClockwise(_boundaryPoints);
+    return BoundaryService.calculateAreaSqMeters(sortedPoints);
   }
 
   void _undo() async {
@@ -216,7 +219,7 @@ class _MapScreenState extends State<MapScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ListingDetailsScreen(
-          boundaryPoints: _boundaryPoints,
+          boundaryPoints: BoundaryService.sortClockwise(_boundaryPoints),
           areaInSqMeters: _areaInSqMeters,
         ),
       ),

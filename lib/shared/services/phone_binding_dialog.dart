@@ -13,6 +13,7 @@ class PhoneBindingDialog extends StatefulWidget {
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const PhoneBindingDialog(),
     );
@@ -142,15 +143,15 @@ class _PhoneBindingDialogState extends State<PhoneBindingDialog> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
 
-    return SafeArea(
-      child: Container(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: 24 + bottomInset,
-        ),
+    return Container(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: 24 + bottomInset + safeBottom,
+      ),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -354,7 +355,6 @@ class _PhoneBindingDialogState extends State<PhoneBindingDialog> {
             ],
           ],
         ),
-      ),
-    );
+      );
   }
 }

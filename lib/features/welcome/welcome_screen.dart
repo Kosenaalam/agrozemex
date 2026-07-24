@@ -252,18 +252,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                             borderRadius: BorderRadius.circular(12),
                             child: BackdropFilter(
                               filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: ColorFiltered(
-                                  colorFilter: const ColorFilter.mode(
-                                    Colors.white,
-                                    BlendMode.srcIn,
-                                  ),
-                                  child: Image.asset(
-                                    'assets/icons/app_icon.png',
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
+                              child: Image.asset(
+                                'assets/icons/app_icon.png',
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),

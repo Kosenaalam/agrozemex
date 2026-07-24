@@ -197,6 +197,7 @@ class _CropHomeScreenState extends State<CropHomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return CropFilterSheet(
@@ -888,6 +889,7 @@ class _OldCropHomeScreenState extends State<_OldCropHomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

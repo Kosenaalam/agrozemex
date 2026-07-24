@@ -179,9 +179,17 @@ Check out this harvest on AgroZemex App!
 
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
+      builder: (ctx) {
+        final safeBottom = MediaQuery.of(ctx).padding.bottom;
+        return Container(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 24 + safeBottom,
+          ),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -260,11 +268,60 @@ Check out this harvest on AgroZemex App!
             ),
           ],
         ),
-      ),
+      );
+    },
     );
   }
 
 
+
+
+  void _openFullscreenGallery(List<String> photos, int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StatefulBuilder(
+          builder: (context, setGalleryState) {
+            int activeIndex = initialIndex;
+            final pageController = PageController(initialPage: initialIndex);
+            return Scaffold(
+              backgroundColor: Colors.black,
+              appBar: AppBar(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                title: Text(
+                  '${activeIndex + 1} / ${photos.length}',
+                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              body: PageView.builder(
+                controller: pageController,
+                itemCount: photos.length,
+                onPageChanged: (idx) {
+                  setGalleryState(() {
+                    activeIndex = idx;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  return InteractiveViewer(
+                    maxScale: 4.0,
+                    minScale: 1.0,
+                    child: Center(
+                      child: UniversalImageWidget(
+                        imagePath: photos[index],
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -294,25 +351,30 @@ Check out this harvest on AgroZemex App!
                         },
                         itemCount: photos.length,
                         itemBuilder: (context, index) {
-                          return UniversalImageWidget(
-                            imagePath: photos[index],
-                            fit: BoxFit.cover,
+                          return GestureDetector(
+                            onTap: () => _openFullscreenGallery(photos, index),
+                            child: UniversalImageWidget(
+                              imagePath: photos[index],
+                              fit: BoxFit.cover,
+                            ),
                           );
                         },
                       ),
 
-                      // Gradient Overlay
+                      // Gradient Overlay - wrapped in IgnorePointer to allow swipes to reach PageView
                       Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.5),
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.4),
-                              ],
+                        child: IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.5),
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.4),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -384,7 +446,56 @@ Check out this harvest on AgroZemex App!
                         ),
                       ),
 
-
+                      if (photos.length > 1) ...[
+                        // Left Arrow Button
+                        Positioned(
+                          left: 12,
+                          top: 0,
+                          bottom: 0,
+                          child: Center(
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Colors.black.withValues(alpha: 0.35),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.chevron_left, color: Colors.white, size: 24),
+                                onPressed: () {
+                                  if (_currentImageIndex > 0) {
+                                    _pageController.previousPage(
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Right Arrow Button
+                        Positioned(
+                          right: 12,
+                          top: 0,
+                          bottom: 0,
+                          child: Center(
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Colors.black.withValues(alpha: 0.35),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.chevron_right, color: Colors.white, size: 24),
+                                onPressed: () {
+                                  if (_currentImageIndex < photos.length - 1) {
+                                    _pageController.nextPage(
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
 
                       // Image Counter Pill
                       Positioned(

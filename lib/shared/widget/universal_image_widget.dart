@@ -24,6 +24,7 @@ class UniversalImageWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String path = imagePath.trim();
+    final int calculatedCacheHeight = height != null ? (height! * 3).toInt() : 800;
 
     final defaultFallback = fallbackWidget ??
         Container(
@@ -48,6 +49,7 @@ class UniversalImageWidget extends StatelessWidget {
         fit: fit,
         width: width,
         height: height,
+        cacheHeight: calculatedCacheHeight,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Container(
@@ -77,6 +79,7 @@ class UniversalImageWidget extends StatelessWidget {
           fit: fit,
           width: width,
           height: height,
+          cacheHeight: calculatedCacheHeight,
           errorBuilder: (context, error, stackTrace) => defaultFallback,
         );
       }
@@ -91,6 +94,7 @@ class UniversalImageWidget extends StatelessWidget {
         fit: fit,
         width: width,
         height: height,
+        cacheHeight: calculatedCacheHeight,
         errorBuilder: (context, error, stackTrace) => defaultFallback,
       );
     } catch (_) {

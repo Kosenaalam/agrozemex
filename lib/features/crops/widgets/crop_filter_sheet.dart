@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:agrozemex/core/theme/theme.dart';
@@ -70,6 +71,11 @@ class _CropFilterSheetState extends State<CropFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final physicalSafeBottom = math.max(
+      MediaQuery.of(context).padding.bottom,
+      MediaQuery.of(context).viewPadding.bottom,
+    );
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Container(
       decoration: const BoxDecoration(
         color: AgroZemexTokens.surface,
@@ -78,7 +84,12 @@ class _CropFilterSheetState extends State<CropFilterSheet> {
       child: ListView(
         shrinkWrap: true,
         physics: const ClampingScrollPhysics(),
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: 24 + physicalSafeBottom + bottomInset + 16,
+        ),
         children: [
           Center(
             child: Container(

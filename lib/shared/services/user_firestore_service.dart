@@ -250,4 +250,12 @@ class UserFirestoreService {
       await userDoc.update({'role': 'seller'});
     }
   }
+
+  Future<void> deleteLandListing(String listingId) async {
+    await _db.collection('listings').doc(listingId).delete();
+  }
+
+  Future<void> deleteCropListing(String listingId) async {
+    await _db.collection('crops').doc(listingId).delete();
+  }
 }

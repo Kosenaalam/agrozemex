@@ -2,6 +2,36 @@ import 'dart:math' as math;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 class BoundaryService {
+  /// Sorts land boundary points in Clockwise polar angle order relative to their centroid.
+  /// Eliminates self-intersection line tangles regardless of tap order.
+  static List<mapbox.Point> sortClockwise(List<mapbox.Point> boundaryPoints) {
+    if (boundaryPoints.length < 3) return List<mapbox.Point>.from(boundaryPoints);
+
+    double sumLat = 0.0;
+    double sumLng = 0.0;
+    for (final pt in boundaryPoints) {
+      sumLat += pt.coordinates.lat;
+      sumLng += pt.coordinates.lng;
+    }
+    final double centerLat = sumLat / boundaryPoints.length;
+    final double centerLng = sumLng / boundaryPoints.length;
+
+    final sorted = List<mapbox.Point>.from(boundaryPoints);
+    sorted.sort((a, b) {
+      final double angleA = math.atan2(
+        a.coordinates.lat - centerLat,
+        a.coordinates.lng - centerLng,
+      );
+      final double angleB = math.atan2(
+        b.coordinates.lat - centerLat,
+        b.coordinates.lng - centerLng,
+      );
+      return angleB.compareTo(angleA);
+    });
+
+    return sorted;
+  }
+
   /// Calculates survey-grade land area in square meters using WGS-84 ellipsoidal
   /// authalic radius correction at centroid latitude.
   static double calculateAreaSqMeters(List<mapbox.Point> boundaryPoints) {

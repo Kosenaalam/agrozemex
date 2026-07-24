@@ -31,6 +31,7 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
   void _showPhotoPickerSheet(BuildContext context, String uid) {
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

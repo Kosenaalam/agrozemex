@@ -141,6 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
@@ -161,12 +162,13 @@ class _HomeScreenState extends State<HomeScreen> {
               'Rainfed',
             ];
 
+            final safeBottom = MediaQuery.of(context).padding.bottom;
             return Container(
               padding: EdgeInsets.only(
                 left: 20,
                 right: 20,
                 top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + safeBottom + 20,
               ),
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -470,19 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(
-                Icons.settings_outlined,
-                color: AgroZemexTokens.primary,
-              ),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Settings under development')),
-                );
-              },
-            ),
+
             ListTile(
               leading: const Icon(
                 Icons.help_outline,

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +35,7 @@ class BookVisitSheet extends StatefulWidget {
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => BookVisitSheet(
         listingId: listingId,
@@ -145,6 +147,10 @@ class _BookVisitSheetState extends State<BookVisitSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final physicalSafeBottom = math.max(
+      MediaQuery.of(context).padding.bottom,
+      MediaQuery.of(context).viewPadding.bottom,
+    );
     final dateFormatted =
         "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}";
     final timeFormatted = _selectedTime.format(context);
@@ -154,7 +160,7 @@ class _BookVisitSheetState extends State<BookVisitSheet> {
         left: 24,
         right: 24,
         top: 24,
-        bottom: 24 + bottomInset,
+        bottom: 24 + bottomInset + physicalSafeBottom + 16,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,

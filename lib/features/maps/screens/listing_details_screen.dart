@@ -132,6 +132,7 @@ class _ListingDetailsScreenState extends ConsumerState<ListingDetailsScreen> {
   void _showPhotoPickerSheet() {
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),

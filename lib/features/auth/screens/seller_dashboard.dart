@@ -6,6 +6,7 @@ import 'package:agrozemex/core/theme/theme.dart';
 import 'package:agrozemex/features/maps/screens/view_listing_map_screen.dart';
 import 'package:agrozemex/shared/services/visit_booking_service.dart';
 import '../services/auth_service.dart';
+import 'package:agrozemex/shared/services/user_firestore_service.dart';
 
 class SellerDashboard extends StatefulWidget {
   final String userId;
@@ -19,13 +20,18 @@ class _SellerDashboardState extends State<SellerDashboard>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late Stream<QuerySnapshot> _listingsStream;
+  late Stream<QuerySnapshot> _cropsStream;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _listingsStream = FirebaseFirestore.instance
         .collection('listings')
+        .where('created_by', isEqualTo: widget.userId)
+        .snapshots();
+    _cropsStream = FirebaseFirestore.instance
+        .collection('crops')
         .where('created_by', isEqualTo: widget.userId)
         .snapshots();
   }
@@ -53,7 +59,8 @@ class _SellerDashboardState extends State<SellerDashboard>
             unselectedLabelColor: AgroZemexTokens.onSurfaceVariant,
             labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold),
             tabs: const [
-              Tab(text: 'My Listings'),
+              Tab(text: 'Properties'),
+              Tab(text: 'Crops'),
               Tab(text: 'Booked Visits'),
             ],
           ),
@@ -63,6 +70,7 @@ class _SellerDashboardState extends State<SellerDashboard>
             controller: _tabController,
             children: [
               _buildListingsView(),
+              _buildCropsView(),
               _buildBookedVisitsView(),
             ],
           ),
@@ -145,20 +153,84 @@ class _SellerDashboardState extends State<SellerDashboard>
                             .update({'is_active': value});
                       },
                     ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.map,
+                          color: AgroZemexTokens.primary,
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ViewListingMapScreen(listingId: id),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        onPressed: () => _confirmDeleteLand(context, id),
+                      ),
+                    ],
+                  ),
+                ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCropsView() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _cropsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Error loading crops'));
+        }
+
+        final crops = snapshot.data?.docs ?? [];
+
+        if (crops.isEmpty) {
+          return const Center(child: Text('No crops found'));
+        }
+
+        return ListView.builder(
+          itemCount: crops.length,
+          itemBuilder: (context, index) {
+            final crop = crops[index].data() as Map<String, dynamic>;
+            final id = crops[index].id;
+            final title = crop['title'] ?? 'N/A';
+
+            return Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: AgroZemexTokens.radiusTwelve,
+              ),
+              child: ListTile(
+                title: Text(
+                  title,
+                  style: AgroZemexTokens.bodyLarge.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     IconButton(
                       icon: const Icon(
-                        Icons.map,
-                        color: AgroZemexTokens.primary,
+                        Icons.delete_outline,
+                        color: Colors.red,
                       ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ViewListingMapScreen(listingId: id),
-                          ),
-                        );
-                      },
+                      onPressed: () => _confirmDeleteCrop(context, id),
                     ),
                   ],
                 ),
@@ -168,6 +240,82 @@ class _SellerDashboardState extends State<SellerDashboard>
         );
       },
     );
+  }
+
+  Future<void> _confirmDeleteLand(BuildContext context, String listingId) async {
+    final userFirestoreService = context.read<UserFirestoreService>();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Property'),
+        content: const Text('Are you sure you want to permanently delete this property?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      try {
+        await userFirestoreService.deleteLandListing(listingId);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Property deleted successfully.')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteCrop(BuildContext context, String listingId) async {
+    final userFirestoreService = context.read<UserFirestoreService>();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Crop'),
+        content: const Text('Are you sure you want to permanently delete this crop?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      try {
+        await userFirestoreService.deleteCropListing(listingId);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Crop deleted successfully.')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete: $e')),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildBookedVisitsView() {

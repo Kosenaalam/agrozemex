@@ -278,7 +278,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     await _outlineManager?.create(
       mapbox.PolylineAnnotationOptions(
         geometry: mapbox.LineString(coordinates: ring),
-        lineColor: AgroZemexTokens.primary.toARGB32(),
+        lineColor: Colors.blue.toARGB32(),
         lineWidth: 3.5,
       ),
     );
@@ -544,12 +544,20 @@ View complete boundary, soil & water details on AgroZemex Land Marketplace!
 
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Container(
-        padding: const EdgeInsets.all(24),
+      builder: (ctx) {
+        final safeBottom = MediaQuery.of(ctx).padding.bottom;
+        return Container(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 24 + safeBottom,
+          ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,7 +652,8 @@ View complete boundary, soil & water details on AgroZemex Land Marketplace!
             ),
           ],
         ),
-      ),
+      );
+    },
     );
   }
 
