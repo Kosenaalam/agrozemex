@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:agrozemex/firebase/firebase_initializer.dart';
 import 'core/app_root.dart';
 import 'core/init.dart';
 
@@ -18,9 +17,7 @@ Future<void> main() async {
 
   // Initialize Firebase [DEFAULT] app BEFORE mounting AppRoot so FirebaseAuth.instance never fails
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    await FirebaseInitializer.initialize();
   } catch (e) {
     debugPrint('Firebase init error: $e');
   }

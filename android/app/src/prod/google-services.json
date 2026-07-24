@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "823519258644",
+    "project_id": "agrozemex-prod",
+    "storage_bucket": "agrozemex-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:823519258644:android:582f6b44d1dbf9f1701f01",
+        "android_client_info": {
+          "package_name": "com.example.agrozemex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "823519258644-cf6cl7crsa1q2elel1v79dvvop821r5r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsDIUoIutYvBUWIRJpVGBA2FXPONPV67Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "823519258644-cf6cl7crsa1q2elel1v79dvvop821r5r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
