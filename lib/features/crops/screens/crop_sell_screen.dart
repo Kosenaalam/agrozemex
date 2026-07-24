@@ -13,9 +13,11 @@ import 'package:agrozemex/features/auth/services/auth_service.dart';
 import 'package:agrozemex/features/navigation/main_navigation_shell.dart';
 import 'package:agrozemex/features/crops/controllers/crop_sell_controller.dart';
 import 'package:agrozemex/features/maps/screens/location_picker_screen.dart'; // We will create this
+import 'package:agrozemex/shared/widget/submit_progress_dialog.dart';
 
 class CropSellScreen extends ConsumerStatefulWidget {
-  const CropSellScreen({super.key});
+  final bool isActive;
+  const CropSellScreen({super.key, this.isActive = true});
 
   @override
   ConsumerState<CropSellScreen> createState() => _CropSellScreenState();
@@ -109,6 +111,7 @@ class _CropSellScreenState extends ConsumerState<CropSellScreen> {
   }
 
   Future<void> _handleClose() async {
+    final wasDirty = _hasUnsavedData;
     final shouldDiscard = await _showDiscardDialog();
     if (!mounted || !shouldDiscard) return;
     
@@ -117,9 +120,11 @@ class _CropSellScreenState extends ConsumerState<CropSellScreen> {
     } else {
       _resetForm();
       MainNavigationShell.of(context)?.switchTab(1); // Go to Home tab safely
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Draft discarded.')),
-      );
+      if (wasDirty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Draft discarded.')),
+        );
+      }
     }
   }
 
@@ -148,6 +153,15 @@ class _CropSellScreenState extends ConsumerState<CropSellScreen> {
       return;
     }
 
+    // Show dynamic progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const SubmitProgressDialog(
+        title: 'Publishing Crop Listing',
+      ),
+    );
+
     try {
       final success = await ref.read(cropSellControllerProvider.notifier).submitCrop(
         authService: context.read<AuthService>(),
@@ -164,6 +178,10 @@ class _CropSellScreenState extends ConsumerState<CropSellScreen> {
         isOrganic: _isOrganic,
       );
 
+      if (mounted) {
+        Navigator.pop(context); // Close the progress dialog
+      }
+
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Crop listed successfully')),
@@ -176,6 +194,9 @@ class _CropSellScreenState extends ConsumerState<CropSellScreen> {
         }
       }
     } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close the progress dialog
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
@@ -193,9 +214,9 @@ class _CropSellScreenState extends ConsumerState<CropSellScreen> {
     final locationStatus = cropState?.locationStatus ?? 'initial';
 
     return PopScope(
-      canPop: false,
+      canPop: !widget.isActive || (!isLoading && !_hasUnsavedData),
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
+        if (didPop || !widget.isActive || isLoading) return;
         await _handleClose();
       },
       child: Scaffold(

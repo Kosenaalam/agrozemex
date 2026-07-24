@@ -97,6 +97,14 @@ class UserFirestoreService {
     return doc.data() ?? {};
   }
 
+  Stream<Map<String, dynamic>> getUserDataStream(String uid) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((doc) => doc.data() ?? {});
+  }
+
   List<String> _buildSearchTokens({
     required String title,
     required String description,

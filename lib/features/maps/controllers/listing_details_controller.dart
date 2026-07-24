@@ -106,6 +106,6 @@ class ListingDetailsController extends AsyncNotifier<ListingDetailsState> {
 }
 
 final listingDetailsControllerProvider =
-    AsyncNotifierProvider<ListingDetailsController, ListingDetailsState>(
+    AsyncNotifierProvider.autoDispose<ListingDetailsController, ListingDetailsState>(
   () => ListingDetailsController(),
 );

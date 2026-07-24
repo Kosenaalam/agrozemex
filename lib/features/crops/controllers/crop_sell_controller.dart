@@ -183,6 +183,6 @@ class CropSellController extends AsyncNotifier<CropSellState> {
   }
 }
 
-final cropSellControllerProvider = AsyncNotifierProvider<CropSellController, CropSellState>(() {
+final cropSellControllerProvider = AsyncNotifierProvider.autoDispose<CropSellController, CropSellState>(() {
   return CropSellController();
 });

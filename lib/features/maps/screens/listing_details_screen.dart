@@ -11,6 +11,7 @@ import 'package:agrozemex/shared/services/phone_binding_dialog.dart';
 import 'package:agrozemex/shared/services/user_firestore_service.dart';
 import '../../auth/services/auth_service.dart';
 import '../controllers/listing_details_controller.dart';
+import 'package:agrozemex/shared/widget/submit_progress_dialog.dart';
 
 class ListingDetailsScreen extends ConsumerStatefulWidget {
   final List<mapbox.Point> boundaryPoints;
@@ -222,6 +223,15 @@ class _ListingDetailsScreenState extends ConsumerState<ListingDetailsScreen> {
       return;
     }
 
+    // Show dynamic progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const SubmitProgressDialog(
+        title: 'Publishing Land Listing',
+      ),
+    );
+
     try {
       final success = await ref.read(listingDetailsControllerProvider.notifier).submitListing(
         context: context,
@@ -242,9 +252,11 @@ class _ListingDetailsScreenState extends ConsumerState<ListingDetailsScreen> {
         isFenced: _isFenced,
       );
 
-      if (!mounted) return;
+      if (mounted) {
+        Navigator.pop(context); // Close the progress dialog
+      }
 
-      if (success) {
+      if (mounted && success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Land listing published successfully!'),
@@ -255,6 +267,9 @@ class _ListingDetailsScreenState extends ConsumerState<ListingDetailsScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close the progress dialog
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error publishing listing: ${e.toString()}')),
@@ -311,9 +326,9 @@ class _ListingDetailsScreenState extends ConsumerState<ListingDetailsScreen> {
     final isLoading = controllerState.asData?.value.isSubmitting ?? false;
 
     return PopScope(
-      canPop: !hasUnsavedChanges || isLoading,
+      canPop: !isLoading && !hasUnsavedChanges,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
+        if (didPop || isLoading) return;
         final shouldPop = await _showDiscardDraftDialog();
         if (shouldPop == true && context.mounted) {
           Navigator.pop(context);

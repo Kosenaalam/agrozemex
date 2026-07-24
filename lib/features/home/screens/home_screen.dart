@@ -1081,9 +1081,11 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const MapScreen()),
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Map View is under development.'),
+                  backgroundColor: AgroZemexTokens.primary,
+                ),
               );
             },
             icon: const Icon(Icons.map, size: 18),

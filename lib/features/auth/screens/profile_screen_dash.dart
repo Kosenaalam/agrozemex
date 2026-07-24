@@ -24,7 +24,9 @@ class ProfileScreenDash extends StatefulWidget {
 }
 
 class _ProfileScreenDashState extends State<ProfileScreenDash> {
-  Future<Map<String, dynamic>>? _profileFuture;
+  Stream<Map<String, dynamic>>? _profileStream;
+  Stream<List<String>>? _wishlistStream;
+  Stream<QuerySnapshot>? _propertiesStream;
   String? _cachedUid;
   bool _isUploadingPhoto = false;
 
@@ -105,9 +107,6 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile photo updated successfully!')),
         );
-        setState(() {
-          _profileFuture = null;
-        });
       }
     } catch (e) {
       if (mounted) {
@@ -167,9 +166,6 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Name updated successfully.')),
                     );
-                    setState(() {
-                      _profileFuture = null;
-                    });
                   }
                 }
               },
@@ -188,18 +184,22 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
       return const LoginScreen();
     }
 
-    if (_profileFuture == null || _cachedUid != auth.user!.uid) {
+    if (_profileStream == null || _cachedUid != auth.user!.uid) {
       _cachedUid = auth.user!.uid;
-      // PERF FIX: Use the Provider-registered singleton instead of creating a new
-      // UserFirestoreService() instance on every rebuild. New instances create
-      // separate Firestore connection state that is never properly disposed.
-      _profileFuture = context.read<UserFirestoreService>().getUserData(
+      _profileStream = context.read<UserFirestoreService>().getUserDataStream(
         auth.user!.uid,
       );
+      _wishlistStream = context.read<WishlistService>().getWishlistIds(
+        uid: auth.user!.uid,
+      );
+      _propertiesStream = FirebaseFirestore.instance
+          .collection('listings')
+          .where('created_by', isEqualTo: auth.user!.uid)
+          .snapshots();
     }
 
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _profileFuture,
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: _profileStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -266,7 +266,9 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
             color: AgroZemexTokens.primary,
             onRefresh: () async {
               setState(() {
-                _profileFuture = null;
+                _profileStream = null;
+                _wishlistStream = null;
+                _propertiesStream = null;
               });
             },
             child: SingleChildScrollView(
@@ -479,12 +481,7 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                 ),
                                 tooltip: phone.isNotEmpty ? 'Update Phone' : 'Add Phone Number',
                                 onPressed: () async {
-                                  final success = await PhoneBindingDialog.show(context);
-                                  if (success && mounted) {
-                                    setState(() {
-                                      _profileFuture = null;
-                                    });
-                                  }
+                                  await PhoneBindingDialog.show(context);
                                 },
                               ),
                             ],
@@ -519,15 +516,9 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                StreamBuilder<QuerySnapshot>(
-                                  stream: FirebaseFirestore.instance
-                                      .collection('listings')
-                                      .where(
-                                        'created_by',
-                                        isEqualTo: auth.user?.uid,
-                                      )
-                                      .snapshots(),
-                                  builder: (context, snapshot) {
+                                 StreamBuilder<QuerySnapshot>(
+                                   stream: _propertiesStream,
+                                   builder: (context, snapshot) {
                                     final count =
                                         snapshot.data?.docs.length ?? 0;
                                     return Text(
@@ -567,21 +558,19 @@ class _ProfileScreenDashState extends State<ProfileScreenDash> {
                                 ),
                                 const SizedBox(height: 8),
                                 StreamBuilder<List<String>>(
-                                  stream: WishlistService().getWishlistIds(
-                                    uid: auth.user?.uid ?? '',
-                                  ),
-                                  builder: (context, snapshot) {
-                                    final count = snapshot.data?.length ?? 0;
-                                    return Text(
-                                      '$count',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: AgroZemexTokens.primary,
-                                      ),
-                                    );
-                                  },
-                                ),
+                                   stream: _wishlistStream,
+                                   builder: (context, snapshot) {
+                                     final count = snapshot.data?.length ?? 0;
+                                     return Text(
+                                       '$count',
+                                       style: GoogleFonts.inter(
+                                         fontSize: 24,
+                                         fontWeight: FontWeight.bold,
+                                         color: AgroZemexTokens.primary,
+                                       ),
+                                     );
+                                   },
+                                 ),
                               ],
                             ),
                           ),

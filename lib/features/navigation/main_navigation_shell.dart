@@ -35,13 +35,7 @@ class MainNavigationShellState extends State<MainNavigationShell> {
   late int _selectedIndex;
   final List<bool> _loaded = [false, false, false, false, false];
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    CropHomeScreen(),
-    MapScreen(),
-    CropSellScreen(),
-    ProfileScreenDash(),
-  ];
+
 
   @override
   void initState() {
@@ -51,7 +45,7 @@ class MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   void switchTab(int index) {
-    if (index < 0 || index >= _screens.length) return;
+    if (index < 0 || index >= 5) return;
     _onTabSelected(index);
   }
 
@@ -87,17 +81,32 @@ class MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      const HomeScreen(),
+      const CropHomeScreen(),
+      const MapScreen(),
+      CropSellScreen(isActive: _selectedIndex == 3),
+      const ProfileScreenDash(),
+    ];
+
     return OfflineBanner(
-      child: Scaffold(
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: List.generate(_screens.length, (index) {
-            return _loaded[index] ? _screens[index] : const SizedBox.shrink();
-          }),
-        ),
-        bottomNavigationBar: CustomBottomNav(
-          currentIndex: _selectedIndex,
-          onTap: _onTabSelected,
+      child: PopScope(
+        canPop: _selectedIndex == 0,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          _onTabSelected(0);
+        },
+        child: Scaffold(
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: List.generate(screens.length, (index) {
+              return _loaded[index] ? screens[index] : const SizedBox.shrink();
+            }),
+          ),
+          bottomNavigationBar: CustomBottomNav(
+            currentIndex: _selectedIndex,
+            onTap: _onTabSelected,
+          ),
         ),
       ),
     );
